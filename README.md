@@ -4,7 +4,12 @@
 
 装上之后，对你的 AI agent 说一句「帮我给 xxx 网站做个 CLI」，它会自动走完全部流程：分析站点 → 搭脚手架 → 实现命令 → 一边实现一边验证，最后产出一个可用的命令行工具（Go / Python / Node.js 都行）。
 
-> 比如已有的 `v2ex-cli`、`xhs-cli` 就是这样生产出来的。
+> 比如已有的 `baidu-cli` 就是这样生产出来的。
+
+DEMO 示例：
+
+https://github.com/user-attachments/assets/0f091de9-db3b-41b1-b67c-58c6cd1bf542
+
 
 ## 前置依赖
 
