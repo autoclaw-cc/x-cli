@@ -13,17 +13,16 @@ https://github.com/user-attachments/assets/0f091de9-db3b-41b1-b67c-58c6cd1bf542
 
 ## 前置依赖
 
-必须先装好 kimi-webbridge 守护进程：
-
-1. 下载并安装：
+1. 先安装浏览器插件：
+参考网站：
    - 中文：<https://www.kimi.team/zh-cn/features/webbridge>
    - English：<https://www.kimi.team/features/webbridge>
-2. 启动并验证：
-   ```bash
-   ~/.kimi-webbridge/bin/kimi-webbridge status
-   # running: true, extension_connected: true
-   ```
-3. 在 Chrome 里手动登录一次目标网站 —— 生成的 CLI 会直接复用你真实的登录态，不需要再折腾账号密码。
+
+2. 交个 AI-Agent，一句话安装配置 kimi-webbridge：
+
+```bash
+curl -fsSL https://kimi-web-img.moonshot.cn/webbridge/install.sh | bash
+```
 
 ## 安装
 
