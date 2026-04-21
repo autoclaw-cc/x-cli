@@ -1,6 +1,6 @@
 # x-cli
 
-基于 [kimi-webbridge](https://www.kimi.team/zh-cn/features/webbridge) 的自定义 CLI 模板。
+基于 [kimi-webbridge](https://www.kimi.com/zh-cn/features/webbridge) 的自定义 CLI 模板。
 
 装上之后，对你的 AI agent 说一句「帮我给 xxx 网站做个 CLI」，它会自动走完全部流程：分析站点 → 搭脚手架 → 实现命令 → 一边实现一边验证，最后产出一个可用的命令行工具（Go / Python / Node.js 都行）。
 
