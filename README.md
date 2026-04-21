@@ -15,8 +15,8 @@ https://github.com/user-attachments/assets/0f091de9-db3b-41b1-b67c-58c6cd1bf542
 
 1. 先安装浏览器插件：
 参考网站：
-   - 中文：<https://www.kimi.team/zh-cn/features/webbridge>
-   - English：<https://www.kimi.team/features/webbridge>
+   - 中文：<https://www.kimi.com/zh-cn/features/webbridge>
+   - English：<https://www.kimi.com/features/webbridge>
 
 2. 交个 AI-Agent，一句话安装配置 kimi-webbridge：
 
