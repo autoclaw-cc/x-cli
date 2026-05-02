@@ -1,0 +1,13 @@
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Universal build artifacts (per-CLI .gitignore handles each binary by name)
+/dist/
+*.test
+*.out
+
+# Local scratch
+/tmp/
