@@ -1,8 +1,9 @@
 name: release
 
 # Per-CLI release. Tag a specific subdir to release just that CLI:
-#   git tag google-cli/v1.0.0     && git push --tags
-#   git tag nanobanana-cli/v0.2.0 && git push --tags
+#   git tag baidu-cli/v0.1.0         && git push --tags
+#   git tag google-cli/v1.0.0        && git push --tags
+#   git tag nanobanana-cli/v0.2.0    && git push --tags
 #   git tag chatgpt-image-cli/v1.3.0 && git push --tags
 #
 # Manual trigger from the Actions tab is also supported (for ad-hoc builds).
@@ -10,6 +11,7 @@ name: release
 on:
   push:
     tags:
+      - 'baidu-cli/v*'
       - 'google-cli/v*'
       - 'nanobanana-cli/v*'
       - 'chatgpt-image-cli/v*'
@@ -20,6 +22,7 @@ on:
         required: true
         type: choice
         options:
+          - baidu-cli
           - google-cli
           - nanobanana-cli
           - chatgpt-image-cli

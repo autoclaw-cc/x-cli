@@ -1,0 +1,15 @@
+# Build output
+/baidu-cli
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+*.out
+
+# Editors
+.vscode/
+.idea/
+.DS_Store

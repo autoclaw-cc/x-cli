@@ -1,18 +1,23 @@
 # x-cli
 
-[autoclaw-cc](https://github.com/autoclaw-cc) 旗下 CLI 工具的 monorepo。每个 CLI 都是一个独立项目（Go / Python / TS 都行——目前都是 Go），由 AI agent + [kimi-webbridge](https://www.kimi.team/zh-cn/features/webbridge) 自动生成；它们驱动你**真实的 Chrome 登录会话**，不走 API、不折腾 token，直接复用现成的网页登录态。
+[autoclaw-cc](https://github.com/autoclaw-cc) 旗下 CLI 工具的 monorepo。每个 CLI 都是一个独立项目（Go / Python / TS 都行——目前都是 Go），由 AI agent + [kimi-webbridge](https://www.kimi.com/zh-cn/features/webbridge) 自动生成；它们驱动你**真实的 Chrome 登录会话**，不走 API、不折腾 token，直接复用现成的网页登录态。
+
+> 例如下面的 `baidu-cli`、`google-cli` 等都是这样产出的——后文「自己做一个新 CLI」演示完整流程。
 
 ## 包含的 CLI
 
-| 工具 | 一句话 | 详细文档 |
-|---|---|---|
-| [`google-cli`](./google-cli/) | Google 搜索 + 网页抓取，输出 JSON | [README](./google-cli/README.md) |
-| [`nanobanana-cli`](./nanobanana-cli/) | 用 Gemini 2.5 Flash Image (Nano Banana) 生成图片 | [README](./nanobanana-cli/README.md) |
-| [`chatgpt-image-cli`](./chatgpt-image-cli/) | 用 chatgpt.com/images 生成图片 | [README](./chatgpt-image-cli/README.md) |
+| 工具 | 一句话 |
+|---|---|
+| [`baidu-cli`](./baidu-cli/) | 百度搜索，输出 JSON |
+| [`google-cli`](./google-cli/) | Google 搜索 + 网页抓取，输出 JSON |
+| [`nanobanana-cli`](./nanobanana-cli/) | 用 Gemini 2.5 Flash Image (Nano Banana) 生成图片 |
+| [`chatgpt-image-cli`](./chatgpt-image-cli/) | 用 chatgpt.com/images 生成图片 |
 
-## 安装
+DEMO 示例：
 
-### 下载预编译二进制（推荐）
+https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
+
+## 安装预编译二进制（推荐）
 
 每个 CLI 的发布 tag 形如 `<cli-name>/v<version>`。在 [Releases 页面](https://github.com/autoclaw-cc/x-cli/releases) 找到你要的 CLI 最新 tag，然后：
 
@@ -48,57 +53,49 @@ go build -o ./<cli-name> .
 ```
 x-cli/
 ├── .github/workflows/
-│   └── release.yml            # 统一的 per-CLI release workflow（目前覆盖 Go CLI）
+│   └── release.yml            # 统一的 per-CLI release workflow
 ├── skills/
 │   └── agent-cli-creator/     # 用 AI agent 生成新 CLI 的 skill（见下文）
-├── google-cli/                # 独立项目（Go）
-├── nanobanana-cli/            # 独立项目（Go）
-├── chatgpt-image-cli/         # 独立项目（Go）
+├── baidu-cli/                 # 独立项目
+├── google-cli/                # 独立项目
+├── nanobanana-cli/            # 独立项目
+├── chatgpt-image-cli/         # 独立项目
 ├── LICENSE
 └── README.md
 ```
 
-每个 CLI 子目录是一个完整、独立的项目，自带 `README.md`、依赖清单（如 `go.mod` / `pyproject.toml` / `package.json`）和 license 信息，可独立开发、独立发布。
+每个 CLI 子目录是一个完整、独立的项目，自带依赖清单（如 `go.mod` / `pyproject.toml` / `package.json`）和 license 信息，可独立开发、独立发布。
 
 ## 发布流程
 
 每个 CLI 用**带前缀的 tag** 触发独立发布，互不干扰：
 
 ```bash
-# 发布 google-cli v1.0.0
-git tag google-cli/v1.0.0
-git push origin google-cli/v1.0.0
-
-# 发布 nanobanana-cli v0.2.0
-git tag nanobanana-cli/v0.2.0
-git push origin nanobanana-cli/v0.2.0
-
-# 发布 chatgpt-image-cli v1.3.0
-git tag chatgpt-image-cli/v1.3.0
-git push origin chatgpt-image-cli/v1.3.0
+git tag baidu-cli/v0.1.0          && git push origin baidu-cli/v0.1.0
+git tag google-cli/v1.0.0         && git push origin google-cli/v1.0.0
+git tag nanobanana-cli/v0.2.0     && git push origin nanobanana-cli/v0.2.0
+git tag chatgpt-image-cli/v1.3.0  && git push origin chatgpt-image-cli/v1.3.0
 ```
 
 CI 会自动识别 tag 前缀，只构建对应 CLI 的 4 个平台二进制（darwin arm64/amd64、linux amd64、windows amd64）并发布到 GitHub Release。也可以在 Actions 页面手动触发 workflow 做临时构建。
 
 新增 Go CLI 时：在 `.github/workflows/release.yml` 的 `on.push.tags` 和 `workflow_dispatch.inputs.cli.options` 中加上对应名字。如果新 CLI 不是 Go（Python / TS 等），可以单独再加一个 sibling workflow（如 `release-python.yml`），用各自的 tag 前缀路由。
 
-## 用 AI agent 生成新 CLI
+## 自己做一个新 CLI
 
-这就是 `skills/agent-cli-creator/` 的用处——本仓库里 3 个 CLI 都是这样产出的。
+仓库里几个 CLI 都是用 `skills/agent-cli-creator/` 这个 skill 让 AI agent 自动产出的。
 
 ### 前置依赖
 
-必须先装好 kimi-webbridge 守护进程：
+1. 先安装浏览器插件：
+   - 中文：<https://www.kimi.com/zh-cn/features/webbridge>
+   - English：<https://www.kimi.com/features/webbridge>
 
-1. 下载并安装：
-   - 中文：<https://www.kimi.team/zh-cn/features/webbridge>
-   - English：<https://www.kimi.team/features/webbridge>
-2. 启动并验证：
+2. 交个 AI-Agent，一句话安装配置 kimi-webbridge：
+
    ```bash
-   ~/.kimi-webbridge/bin/kimi-webbridge status
-   # running: true, extension_connected: true
+   curl -fsSL https://kimi-web-img.moonshot.cn/webbridge/install.sh | bash
    ```
-3. 在 Chrome 里手动登录一次目标网站——生成的 CLI 会直接复用你真实的登录态。
 
 ### 安装 skill
 
