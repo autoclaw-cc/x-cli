@@ -22,19 +22,29 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 每个 CLI 的发布 tag 形如 `<cli-name>/v<version>`。在 [Releases 页面](https://github.com/autoclaw-cc/x-cli/releases) 找到你要的 CLI 最新 tag，然后：
 
 ```bash
-# 以 google-cli v1.0.0 / macOS arm64 为例
-TAG=google-cli/v1.0.0
-curl -L -o google-cli \
-  "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/google-cli-darwin-arm64"
-chmod +x google-cli
+# 以 google-cli v0.1.0 / macOS arm64 为例
+TAG=google-cli/v0.1.0
+curl -LO "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/google-cli-darwin-arm64.tar.gz"
+tar -xzf google-cli-darwin-arm64.tar.gz
 ./google-cli --help
 ```
 
-每个 tag 都包含 4 个平台的二进制：`<cli>-darwin-arm64`、`<cli>-darwin-amd64`、`<cli>-linux-amd64`、`<cli>-windows-amd64.exe`，外加一份 `checksums.txt`（sha256）。
+每个 tag 都打包了 6 个平台的归档（约 3 MB / 个，gzip 压缩）：
 
-### macOS：从浏览器下载后无法运行？
+| 平台 | 文件名后缀 |
+|---|---|
+| macOS arm64 (Apple Silicon) | `-darwin-arm64.tar.gz` |
+| macOS amd64 (Intel) | `-darwin-amd64.tar.gz` |
+| Linux amd64 | `-linux-amd64.tar.gz` |
+| Linux arm64 (Graviton/树莓派 4+) | `-linux-arm64.tar.gz` |
+| Windows amd64 | `-windows-amd64.zip` |
+| Windows arm64 (Snapdragon 笔记本) | `-windows-arm64.zip` |
 
-浏览器下载的文件会被 macOS 加上 `com.apple.quarantine` 标记，运行时会被拦下来「无法打开，因为开发者身份未验证」。一行命令解除即可：
+外加一份 `checksums.txt`（sha256）。
+
+### macOS：解压后无法运行？
+
+浏览器下载并解压后的文件带 `com.apple.quarantine` 标记，Gatekeeper 会拦：「无法打开，因为开发者身份未验证」。一行命令解除即可：
 
 ```bash
 xattr -d com.apple.quarantine ./<cli-name>

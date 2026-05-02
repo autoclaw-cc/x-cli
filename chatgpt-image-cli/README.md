@@ -39,13 +39,12 @@ This CLI ships from the [autoclaw-cc/x-cli](https://github.com/autoclaw-cc/x-cli
 ```bash
 # macOS arm64 (Apple Silicon) — swap the suffix for your platform:
 TAG=chatgpt-image-cli/v0.1.0   # replace with the latest tag
-curl -L -o chatgpt-image-cli \
-  "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/chatgpt-image-cli-darwin-arm64"
-chmod +x chatgpt-image-cli
+curl -LO "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/chatgpt-image-cli-darwin-arm64.tar.gz"
+tar -xzf chatgpt-image-cli-darwin-arm64.tar.gz
 ./chatgpt-image-cli --help
 ```
 
-> **macOS users**: browser-downloaded binaries get blocked by Gatekeeper. Clear the quarantine flag once:
+> **macOS users**: after extracting, clear the Gatekeeper quarantine flag once:
 > ```bash
 > xattr -d com.apple.quarantine ./chatgpt-image-cli
 > ```
@@ -54,10 +53,12 @@ Release assets (per tag):
 
 | Platform | Asset |
 |---|---|
-| macOS Intel | `chatgpt-image-cli-darwin-amd64` |
-| macOS Apple Silicon | `chatgpt-image-cli-darwin-arm64` |
-| Linux x86_64 | `chatgpt-image-cli-linux-amd64` |
-| Windows x86_64 | `chatgpt-image-cli-windows-amd64.exe` |
+| macOS arm64 (Apple Silicon) | `chatgpt-image-cli-darwin-arm64.tar.gz` |
+| macOS amd64 (Intel) | `chatgpt-image-cli-darwin-amd64.tar.gz` |
+| Linux amd64 | `chatgpt-image-cli-linux-amd64.tar.gz` |
+| Linux arm64 | `chatgpt-image-cli-linux-arm64.tar.gz` |
+| Windows amd64 | `chatgpt-image-cli-windows-amd64.zip` |
+| Windows arm64 | `chatgpt-image-cli-windows-arm64.zip` |
 | Checksums | `checksums.txt` (SHA-256) |
 
 ### From source

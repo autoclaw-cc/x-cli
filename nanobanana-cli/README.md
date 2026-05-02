@@ -47,18 +47,17 @@ This CLI ships from the [autoclaw-cc/x-cli](https://github.com/autoclaw-cc/x-cli
 ```bash
 # macOS arm64 (Apple Silicon) — swap the suffix for your platform:
 TAG=nanobanana-cli/v0.1.0   # replace with the latest tag
-curl -L -o nanobanana-cli \
-  "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/nanobanana-cli-darwin-arm64"
-chmod +x nanobanana-cli
+curl -LO "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/nanobanana-cli-darwin-arm64.tar.gz"
+tar -xzf nanobanana-cli-darwin-arm64.tar.gz
 ./nanobanana-cli --help
 ```
 
-> **macOS users**: browser-downloaded binaries get blocked by Gatekeeper. Clear the quarantine flag once:
+> **macOS users**: after extracting, clear the Gatekeeper quarantine flag once:
 > ```bash
 > xattr -d com.apple.quarantine ./nanobanana-cli
 > ```
 
-Available assets per release: `nanobanana-cli-darwin-{arm64,amd64}`, `nanobanana-cli-linux-amd64`, `nanobanana-cli-windows-amd64.exe`, `checksums.txt`.
+Available archives per release: `nanobanana-cli-{darwin-arm64,darwin-amd64,linux-amd64,linux-arm64}.tar.gz`, `nanobanana-cli-{windows-amd64,windows-arm64}.zip`, plus `checksums.txt`.
 
 ### Build from source
 

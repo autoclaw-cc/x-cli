@@ -76,15 +76,27 @@ jobs:
           - goos: darwin
             goarch: arm64
             ext: ''
+            archive: tar.gz
           - goos: darwin
             goarch: amd64
             ext: ''
+            archive: tar.gz
           - goos: linux
             goarch: amd64
             ext: ''
+            archive: tar.gz
+          - goos: linux
+            goarch: arm64
+            ext: ''
+            archive: tar.gz
           - goos: windows
             goarch: amd64
             ext: '.exe'
+            archive: zip
+          - goos: windows
+            goarch: arm64
+            ext: '.exe'
+            archive: zip
     steps:
       - uses: actions/checkout@v4
 
@@ -105,17 +117,39 @@ jobs:
           EXT: ${{ matrix.ext }}
         run: |
           set -euo pipefail
-          out="${CLI}-${GOOS}-${GOARCH}${EXT}"
+          # Build the binary with the bare CLI name (so users get e.g. `google-cli`
+          # after extraction, not `google-cli-darwin-arm64`).
+          bin="${CLI}${EXT}"
           go build -trimpath \
             -ldflags="-s -w -X main.version=${VERSION}" \
-            -o "$out" .
-          ls -la "$out"
-          file "$out" || true
+            -o "$bin" .
+          ls -la "$bin"
+          file "$bin" || true
+
+      - name: package archive
+        working-directory: ${{ needs.prepare.outputs.cli }}
+        env:
+          CLI: ${{ needs.prepare.outputs.cli }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          EXT: ${{ matrix.ext }}
+          ARCHIVE: ${{ matrix.archive }}
+        run: |
+          set -euo pipefail
+          bin="${CLI}${EXT}"
+          stem="${CLI}-${GOOS}-${GOARCH}"
+          if [[ "$ARCHIVE" == "tar.gz" ]]; then
+            tar -czf "${stem}.tar.gz" "$bin"
+            ls -la "${stem}.tar.gz"
+          else
+            zip -q "${stem}.zip" "$bin"
+            ls -la "${stem}.zip"
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ needs.prepare.outputs.cli }}-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ needs.prepare.outputs.cli }}/${{ needs.prepare.outputs.cli }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
+          path: ${{ needs.prepare.outputs.cli }}/${{ needs.prepare.outputs.cli }}-${{ matrix.goos }}-${{ matrix.goarch }}.${{ matrix.archive }}
           if-no-files-found: error
           retention-days: 7
 
@@ -150,27 +184,30 @@ jobs:
           body: |
             Release of `${{ needs.prepare.outputs.cli }}` ${{ needs.prepare.outputs.version }}.
 
-            ## Binaries
+            ## Downloads
 
-            | Target | Asset |
+            | Platform | Asset |
             |---|---|
-            | macOS arm64 (Apple Silicon) | `${{ needs.prepare.outputs.cli }}-darwin-arm64` |
-            | macOS amd64 (Intel)         | `${{ needs.prepare.outputs.cli }}-darwin-amd64` |
-            | Linux amd64                 | `${{ needs.prepare.outputs.cli }}-linux-amd64` |
-            | Windows amd64               | `${{ needs.prepare.outputs.cli }}-windows-amd64.exe` |
+            | macOS arm64 (Apple Silicon) | `${{ needs.prepare.outputs.cli }}-darwin-arm64.tar.gz` |
+            | macOS amd64 (Intel)         | `${{ needs.prepare.outputs.cli }}-darwin-amd64.tar.gz` |
+            | Linux amd64                 | `${{ needs.prepare.outputs.cli }}-linux-amd64.tar.gz` |
+            | Linux arm64                 | `${{ needs.prepare.outputs.cli }}-linux-arm64.tar.gz` |
+            | Windows amd64               | `${{ needs.prepare.outputs.cli }}-windows-amd64.zip` |
+            | Windows arm64               | `${{ needs.prepare.outputs.cli }}-windows-arm64.zip` |
 
             Checksums: `checksums.txt` (sha256).
 
-            Install (macOS arm64):
+            ## Install (macOS arm64 example)
 
             ```bash
-            curl -L -o ${{ needs.prepare.outputs.cli }} \
-              https://github.com/${{ github.repository }}/releases/download/${{ needs.prepare.outputs.tag }}/${{ needs.prepare.outputs.cli }}-darwin-arm64
-            chmod +x ${{ needs.prepare.outputs.cli }}
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ needs.prepare.outputs.tag }}/${{ needs.prepare.outputs.cli }}-darwin-arm64.tar.gz
+            tar -xzf ${{ needs.prepare.outputs.cli }}-darwin-arm64.tar.gz
             ./${{ needs.prepare.outputs.cli }} --help
             ```
 
-            > **macOS users**: browser-downloaded binaries get blocked by Gatekeeper. Clear the quarantine flag once:
+            Linux / other archs: swap the suffix (`linux-amd64`, `linux-arm64`, etc.). Windows: download the `.zip` and extract.
+
+            > **macOS users**: browser-downloaded archives get blocked by Gatekeeper. After extracting, clear the quarantine flag once:
             > ```bash
             > xattr -d com.apple.quarantine ./${{ needs.prepare.outputs.cli }}
             > ```
