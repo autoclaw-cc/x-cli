@@ -1,2 +1,16 @@
-.claude/settings.local.json
+# OS / editor cruft
 .DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Universal build artifacts (per-CLI .gitignore handles each binary by name)
+/dist/
+*.test
+*.out
+
+# Local scratch
+/tmp/

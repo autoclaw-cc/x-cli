@@ -1,0 +1,178 @@
+name: release
+
+# Per-CLI release. Tag a specific subdir to release just that CLI:
+#   git tag baidu-cli/v0.1.0         && git push --tags
+#   git tag google-cli/v1.0.0        && git push --tags
+#   git tag nanobanana-cli/v0.2.0    && git push --tags
+#   git tag chatgpt-image-cli/v1.3.0 && git push --tags
+#
+# Manual trigger from the Actions tab is also supported (for ad-hoc builds).
+
+on:
+  push:
+    tags:
+      - 'baidu-cli/v*'
+      - 'google-cli/v*'
+      - 'nanobanana-cli/v*'
+      - 'chatgpt-image-cli/v*'
+  workflow_dispatch:
+    inputs:
+      cli:
+        description: 'Which CLI to build'
+        required: true
+        type: choice
+        options:
+          - baidu-cli
+          - google-cli
+          - nanobanana-cli
+          - chatgpt-image-cli
+      version:
+        description: 'Version label (e.g. v0.0.0-test). Used in release name only.'
+        required: true
+        default: 'v0.0.0-manual'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: prepare ${{ github.event_name == 'push' && github.ref_name || format('{0}/{1}', inputs.cli, inputs.version) }}
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.parse.outputs.cli }}
+      version: ${{ steps.parse.outputs.version }}
+      tag: ${{ steps.parse.outputs.tag }}
+      manual: ${{ steps.parse.outputs.manual }}
+    steps:
+      - id: parse
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            CLI="${{ inputs.cli }}"
+            VERSION="${{ inputs.version }}"
+            TAG="${CLI}/${VERSION}-${GITHUB_SHA::7}"
+            MANUAL=true
+          else
+            REF="${GITHUB_REF#refs/tags/}"   # e.g. google-cli/v1.0.0
+            CLI="${REF%%/*}"                 # google-cli
+            VERSION="${REF#*/}"              # v1.0.0
+            TAG="$REF"
+            MANUAL=false
+          fi
+          echo "cli=$CLI" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "manual=$MANUAL" >> "$GITHUB_OUTPUT"
+          echo "Resolved -> cli=$CLI version=$VERSION tag=$TAG manual=$MANUAL"
+
+  build:
+    name: build ${{ needs.prepare.outputs.cli }} ${{ matrix.goos }}-${{ matrix.goarch }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: darwin
+            goarch: arm64
+            ext: ''
+          - goos: darwin
+            goarch: amd64
+            ext: ''
+          - goos: linux
+            goarch: amd64
+            ext: ''
+          - goos: windows
+            goarch: amd64
+            ext: '.exe'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ needs.prepare.outputs.cli }}/go.mod
+          cache: true
+          cache-dependency-path: ${{ needs.prepare.outputs.cli }}/go.sum
+
+      - name: build
+        working-directory: ${{ needs.prepare.outputs.cli }}
+        env:
+          CLI: ${{ needs.prepare.outputs.cli }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+          EXT: ${{ matrix.ext }}
+        run: |
+          set -euo pipefail
+          out="${CLI}-${GOOS}-${GOARCH}${EXT}"
+          go build -trimpath \
+            -ldflags="-s -w -X main.version=${VERSION}" \
+            -o "$out" .
+          ls -la "$out"
+          file "$out" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.prepare.outputs.cli }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ needs.prepare.outputs.cli }}/${{ needs.prepare.outputs.cli }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: publish ${{ needs.prepare.outputs.tag }}
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+          pattern: ${{ needs.prepare.outputs.cli }}-*
+
+      - name: checksums
+        working-directory: dist
+        run: |
+          sha256sum * > checksums.txt
+          ls -la
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.cli }} ${{ needs.prepare.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ needs.prepare.outputs.manual == 'true' }}
+          files: dist/*
+          fail_on_unmatched_files: true
+          generate_release_notes: ${{ needs.prepare.outputs.manual == 'false' }}
+          body: |
+            Release of `${{ needs.prepare.outputs.cli }}` ${{ needs.prepare.outputs.version }}.
+
+            ## Binaries
+
+            | Target | Asset |
+            |---|---|
+            | macOS arm64 (Apple Silicon) | `${{ needs.prepare.outputs.cli }}-darwin-arm64` |
+            | macOS amd64 (Intel)         | `${{ needs.prepare.outputs.cli }}-darwin-amd64` |
+            | Linux amd64                 | `${{ needs.prepare.outputs.cli }}-linux-amd64` |
+            | Windows amd64               | `${{ needs.prepare.outputs.cli }}-windows-amd64.exe` |
+
+            Checksums: `checksums.txt` (sha256).
+
+            Install (macOS arm64):
+
+            ```bash
+            curl -L -o ${{ needs.prepare.outputs.cli }} \
+              https://github.com/${{ github.repository }}/releases/download/${{ needs.prepare.outputs.tag }}/${{ needs.prepare.outputs.cli }}-darwin-arm64
+            chmod +x ${{ needs.prepare.outputs.cli }}
+            ./${{ needs.prepare.outputs.cli }} --help
+            ```
+
+            > **macOS users**: browser-downloaded binaries get blocked by Gatekeeper. Clear the quarantine flag once:
+            > ```bash
+            > xattr -d com.apple.quarantine ./${{ needs.prepare.outputs.cli }}
+            > ```
+
+            See [README](https://github.com/${{ github.repository }}/tree/main/${{ needs.prepare.outputs.cli }}#readme) for usage.

@@ -1,0 +1,26 @@
+# Binary output
+/nanobanana-cli
+/dist/
+/build/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Generated outputs
+/tmp/
+*.png
+!docs/**/*.png
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store

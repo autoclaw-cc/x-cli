@@ -1,0 +1,4 @@
+/google-cli
+/google-cli.exe
+*.test
+/tmp/
