@@ -1,6 +1,6 @@
 # x-cli
 
-[autoclaw-cc](https://github.com/autoclaw-cc) 旗下 CLI 工具的 monorepo。每个 CLI 都是一个独立项目（Go / Python / TS 都行——目前都是 Go），由 AI agent + [kimi-webbridge](https://www.kimi.com/zh-cn/features/webbridge) 自动生成；它们驱动你**真实的 Chrome 登录会话**，不走 API、不折腾 token，直接复用现成的网页登录态。
+[better-world-ai](https://github.com/better-world-ai) 旗下 CLI 工具的 monorepo。每个 CLI 都是一个独立项目（Go / Python / TS 都行——目前都是 Go），由 AI agent + [kimi-webbridge](https://www.kimi.com/zh-cn/features/webbridge) 自动生成；它们驱动你**真实的 Chrome 登录会话**，不走 API、不折腾 token，直接复用现成的网页登录态。
 
 > 例如下面的 `baidu-cli`、`google-cli` 等都是这样产出的——后文「自己做一个新 CLI」演示完整流程。
 
@@ -19,12 +19,12 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
 ## 安装预编译二进制（推荐）
 
-每个 CLI 的发布 tag 形如 `<cli-name>/v<version>`。在 [Releases 页面](https://github.com/autoclaw-cc/x-cli/releases) 找到你要的 CLI 最新 tag，然后：
+每个 CLI 的发布 tag 形如 `<cli-name>/v<version>`。在 [Releases 页面](https://github.com/better-world-ai/x-cli/releases) 找到你要的 CLI 最新 tag，然后：
 
 ```bash
 # 以 google-cli v0.1.0 / macOS arm64 为例
 TAG=google-cli/v0.1.0
-curl -LO "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/google-cli-darwin-arm64.tar.gz"
+curl -LO "https://github.com/better-world-ai/x-cli/releases/download/${TAG}/google-cli-darwin-arm64.tar.gz"
 tar -xzf google-cli-darwin-arm64.tar.gz
 ./google-cli --help
 ```
@@ -53,7 +53,7 @@ xattr -d com.apple.quarantine ./<cli-name>
 ### 本地编译
 
 ```bash
-git clone https://github.com/autoclaw-cc/x-cli
+git clone https://github.com/better-world-ai/x-cli
 cd x-cli/<某个-cli>
 go build -o ./<cli-name> .
 ```

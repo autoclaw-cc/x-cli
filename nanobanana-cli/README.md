@@ -42,12 +42,12 @@ Each run saves two files into `-o <dir>`:
 
 ### Pre-built binary (recommended)
 
-This CLI ships from the [autoclaw-cc/x-cli](https://github.com/autoclaw-cc/x-cli) monorepo. Find the latest release tag (formatted `nanobanana-cli/v<version>`) at <https://github.com/autoclaw-cc/x-cli/releases?q=nanobanana-cli>, then:
+This CLI ships from the [better-world-ai/x-cli](https://github.com/better-world-ai/x-cli) monorepo. Find the latest release tag (formatted `nanobanana-cli/v<version>`) at <https://github.com/better-world-ai/x-cli/releases?q=nanobanana-cli>, then:
 
 ```bash
 # macOS arm64 (Apple Silicon) — swap the suffix for your platform:
 TAG=nanobanana-cli/v0.1.0   # replace with the latest tag
-curl -LO "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/nanobanana-cli-darwin-arm64.tar.gz"
+curl -LO "https://github.com/better-world-ai/x-cli/releases/download/${TAG}/nanobanana-cli-darwin-arm64.tar.gz"
 tar -xzf nanobanana-cli-darwin-arm64.tar.gz
 ./nanobanana-cli --help
 ```
@@ -62,7 +62,7 @@ Available archives per release: `nanobanana-cli-{darwin-arm64,darwin-amd64,linux
 ### Build from source
 
 ```bash
-git clone https://github.com/autoclaw-cc/x-cli.git
+git clone https://github.com/better-world-ai/x-cli.git
 cd x-cli/nanobanana-cli
 go build -o nanobanana-cli .
 ```
