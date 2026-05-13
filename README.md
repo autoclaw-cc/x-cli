@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
    - 中文：<https://www.kimi.com/zh-cn/features/webbridge>
    - English：<https://www.kimi.com/features/webbridge>
 
-2. **本地 skill**，让 agent 知道怎么用上面那个插件。一行命令装好：
+2. **本地 skill**，让 agent 知道怎么用上面那个插件。装好：
 
    ```bash
    curl -fsSL https://kimi-web-img.moonshot.cn/webbridge/install.sh | bash
@@ -75,22 +75,20 @@ tar -xzf google-cli-darwin-arm64.tar.gz
 ./google-cli --help
 ```
 
-每个 tag 都打包了 6 个平台的归档（约 3 MB / 个，gzip 压缩）：
+每个 tag 都打包了 6 个平台的归档：
 
 | 平台 | 文件名后缀 |
 |---|---|
 | macOS arm64 (Apple Silicon) | `-darwin-arm64.tar.gz` |
 | macOS amd64 (Intel) | `-darwin-amd64.tar.gz` |
 | Linux amd64 | `-linux-amd64.tar.gz` |
-| Linux arm64 (Graviton/树莓派 4+) | `-linux-arm64.tar.gz` |
+| Linux arm64 | `-linux-arm64.tar.gz` |
 | Windows amd64 | `-windows-amd64.zip` |
-| Windows arm64 (Snapdragon 笔记本) | `-windows-arm64.zip` |
-
-外加一份 `checksums.txt`（sha256）。
+| Windows arm64 | `-windows-arm64.zip` |
 
 ### macOS：解压后无法运行？
 
-浏览器下载并解压后的文件带 `com.apple.quarantine` 标记，Gatekeeper 会拦：「无法打开，因为开发者身份未验证」。一行命令解除即可：
+浏览器下载并解压后的文件带 `com.apple.quarantine` 标记，Gatekeeper 会拦：「无法打开，因为开发者身份未验证」。解除：
 
 ```bash
 xattr -d com.apple.quarantine ./<cli-name>
@@ -120,8 +118,6 @@ x-cli/
 └── README.md
 ```
 
-每个 CLI 子目录是一个完整、独立的项目，自带依赖清单（如 `go.mod` / `pyproject.toml` / `package.json`）和 license 信息，可独立开发、独立发布。
-
 ## 发布流程
 
 每个 CLI 用**带前缀的 tag** 触发独立发布，互不干扰：
@@ -133,9 +129,9 @@ git tag nanobanana-cli/v0.2.0     && git push origin nanobanana-cli/v0.2.0
 git tag chatgpt-image-cli/v1.3.0  && git push origin chatgpt-image-cli/v1.3.0
 ```
 
-CI 会自动识别 tag 前缀，只构建对应 CLI 的 6 个平台二进制（darwin arm64/amd64、linux amd64/arm64、windows amd64/arm64）并发布到 GitHub Release。也可以在 Actions 页面手动触发 workflow 做临时构建。
+CI 会自动识别 tag 前缀，只构建对应 CLI 的 6 个平台二进制并发布到 GitHub Release。也可以在 Actions 页面手动触发 workflow 做临时构建。
 
-新增 Go CLI 时：在 `.github/workflows/release.yml` 的 `on.push.tags` 和 `workflow_dispatch.inputs.cli.options` 中加上对应名字。如果新 CLI 不是 Go（Python / TS 等），可以单独再加一个 sibling workflow（如 `release-python.yml`），用各自的 tag 前缀路由。
+新增 Go CLI 时：在 `.github/workflows/release.yml` 的 `on.push.tags` 和 `workflow_dispatch.inputs.cli.options` 中加上对应名字。
 
 ## License
 
