@@ -65,30 +65,11 @@ npx skills add better-world-ai/x-cli
 
 ## 安装预编译二进制
 
-每个 CLI 的发布 tag 形如 `<cli-name>/v<version>`。在 [Releases 页面](https://github.com/better-world-ai/x-cli/releases) 找到你要的 CLI 最新 tag，然后：
+去 [Releases 页面](https://github.com/better-world-ai/x-cli/releases) 下载对应平台的归档，解压即可用。
 
-```bash
-# 以 google-cli v0.1.0 / macOS arm64 为例
-TAG=google-cli/v0.1.0
-curl -LO "https://github.com/better-world-ai/x-cli/releases/download/${TAG}/google-cli-darwin-arm64.tar.gz"
-tar -xzf google-cli-darwin-arm64.tar.gz
-./google-cli --help
-```
+### macOS 打开提示
 
-每个 tag 都打包了 6 个平台的归档：
-
-| 平台 | 文件名后缀 |
-|---|---|
-| macOS arm64 (Apple Silicon) | `-darwin-arm64.tar.gz` |
-| macOS amd64 (Intel) | `-darwin-amd64.tar.gz` |
-| Linux amd64 | `-linux-amd64.tar.gz` |
-| Linux arm64 | `-linux-arm64.tar.gz` |
-| Windows amd64 | `-windows-amd64.zip` |
-| Windows arm64 | `-windows-arm64.zip` |
-
-### macOS：解压后无法运行？
-
-浏览器下载并解压后的文件带 `com.apple.quarantine` 标记，Gatekeeper 会拦：「无法打开，因为开发者身份未验证」。解除：
+遇到「无法打开，因为开发者身份未验证」时，执行：
 
 ```bash
 xattr -d com.apple.quarantine ./<cli-name>
@@ -101,37 +82,6 @@ git clone https://github.com/better-world-ai/x-cli
 cd x-cli/<某个-cli>
 go build -o ./<cli-name> .
 ```
-
-## 仓库结构
-
-```
-x-cli/
-├── .github/workflows/
-│   └── release.yml            # 统一的 per-CLI release workflow
-├── skills/
-│   └── agent-cli-creator/     # 用 AI agent 生成新 CLI 的 skill（见上文）
-├── baidu-cli/                 # 独立项目
-├── google-cli/                # 独立项目
-├── nanobanana-cli/            # 独立项目
-├── chatgpt-image-cli/         # 独立项目
-├── LICENSE
-└── README.md
-```
-
-## 发布流程
-
-每个 CLI 用**带前缀的 tag** 触发独立发布，互不干扰：
-
-```bash
-git tag baidu-cli/v0.1.0          && git push origin baidu-cli/v0.1.0
-git tag google-cli/v1.0.0         && git push origin google-cli/v1.0.0
-git tag nanobanana-cli/v0.2.0     && git push origin nanobanana-cli/v0.2.0
-git tag chatgpt-image-cli/v1.3.0  && git push origin chatgpt-image-cli/v1.3.0
-```
-
-CI 会自动识别 tag 前缀，只构建对应 CLI 的 6 个平台二进制并发布到 GitHub Release。也可以在 Actions 页面手动触发 workflow 做临时构建。
-
-新增 Go CLI 时：在 `.github/workflows/release.yml` 的 `on.push.tags` 和 `workflow_dispatch.inputs.cli.options` 中加上对应名字。
 
 ## License
 
