@@ -32,8 +32,6 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 npx skills add better-world-ai/x-cli
 ```
 
-借助 [`vercel-labs/skills`](https://github.com/vercel-labs/skills)，一行命令搞定。它会自动检测你装了哪些 agent（Claude Code / Kimi CLI / Codex / OpenClaw / Cursor / Gemini CLI 等 [50+ 个](https://github.com/vercel-labs/skills#supported-agents)），把 skill 软链到对应位置；之后用 `npx skills update` 即可一键升级所有 agent 上的版本。
-
 <details>
 <summary>没有 Node.js？手动安装</summary>
 
