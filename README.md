@@ -28,41 +28,20 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
 ### 安装 skill
 
-挑你在用的 agent：
-
-#### Claude Code
-
 ```bash
-mkdir -p ~/.claude/skills
-cp -r skills/agent-cli-creator ~/.claude/skills/
+npx skills add better-world-ai/x-cli
 ```
+
+借助 [`vercel-labs/skills`](https://github.com/vercel-labs/skills)，一行命令搞定。它会自动检测你装了哪些 agent（Claude Code / Kimi CLI / Codex / OpenClaw / Cursor / Gemini CLI 等 [50+ 个](https://github.com/vercel-labs/skills#supported-agents)），把 skill 软链到对应位置；之后用 `npx skills update` 即可一键升级所有 agent 上的版本。
+
+<details>
+<summary>没有 Node.js？手动安装</summary>
+
+把 `skills/agent-cli-creator/` 复制到你 agent 的 skills 目录即可（Claude Code 是 `~/.claude/skills/`）。不确定路径？把这一段 README 丢给你的 agent，它会自己判断。
+
+</details>
 
 装完就能用，对话里说一句「帮我给 example.com 做个 CLI」即可触发。
-
-#### Kimi CLI
-
-```bash
-cp -r skills/agent-cli-creator ~/.kimi/skills/
-```
-
-#### OpenClaw
-
-```bash
-cp -r skills/agent-cli-creator <openclaw-的-skills-目录>/
-```
-
-如果 OpenClaw 不会自动加载，就在它的 agent 配置文件里加一条指向 `SKILL.md` 的引用。
-
-#### OpenAI Codex
-
-Codex 读的是 `AGENTS.md`。把 `skills/agent-cli-creator/` 放在你的项目目录里，然后在 `AGENTS.md` 里加一段：
-
-```md
-## Skills
-
-当用户要求为某个网站构建 CLI 时，请阅读并遵循：
-`./skills/agent-cli-creator/SKILL.md`
-```
 
 ### 怎么用
 
