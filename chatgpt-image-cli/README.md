@@ -34,12 +34,12 @@ $ chatgpt-image-cli generate "a cute panda riding a bicycle through a bamboo for
 
 ### Pre-built binary (recommended)
 
-This CLI ships from the [autoclaw-cc/x-cli](https://github.com/autoclaw-cc/x-cli) monorepo. Find the latest release tag (formatted `chatgpt-image-cli/v<version>`) at <https://github.com/autoclaw-cc/x-cli/releases?q=chatgpt-image-cli>, then:
+This CLI ships from the [better-world-ai/x-cli](https://github.com/better-world-ai/x-cli) monorepo. Find the latest release tag (formatted `chatgpt-image-cli/v<version>`) at <https://github.com/better-world-ai/x-cli/releases?q=chatgpt-image-cli>, then:
 
 ```bash
 # macOS arm64 (Apple Silicon) — swap the suffix for your platform:
 TAG=chatgpt-image-cli/v0.1.0   # replace with the latest tag
-curl -LO "https://github.com/autoclaw-cc/x-cli/releases/download/${TAG}/chatgpt-image-cli-darwin-arm64.tar.gz"
+curl -LO "https://github.com/better-world-ai/x-cli/releases/download/${TAG}/chatgpt-image-cli-darwin-arm64.tar.gz"
 tar -xzf chatgpt-image-cli-darwin-arm64.tar.gz
 ./chatgpt-image-cli --help
 ```
@@ -64,7 +64,7 @@ Release assets (per tag):
 ### From source
 
 ```bash
-git clone https://github.com/autoclaw-cc/x-cli.git
+git clone https://github.com/better-world-ai/x-cli.git
 cd x-cli/chatgpt-image-cli
 go build -o chatgpt-image-cli .
 ./chatgpt-image-cli --help
