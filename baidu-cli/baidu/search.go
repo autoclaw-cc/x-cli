@@ -1,7 +1,6 @@
 package baidu
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -20,10 +19,10 @@ type Result struct {
 }
 
 // extractorJS is the verified evaluate call from Phase 3 archaeology.
-// Reads the SSR'd DOM directly — no XHR involved.
+// Returns a JSON string for EvaluateJSON compatibility.
 const extractorJS = `(() => {
   const items = document.querySelectorAll(".result.c-container, .result-op.c-container");
-  return Array.from(items).map((el, i) => {
+  return JSON.stringify(Array.from(items).map((el, i) => {
     const titleEl = el.querySelector("h3 a") || el.querySelector(".t a");
     const absEl = el.querySelector("[class*=summary-text]")
       || el.querySelector("[class*=abstract]")
@@ -40,7 +39,7 @@ const extractorJS = `(() => {
       abstract: absEl ? absEl.innerText.trim().replace(/\s+/g, " ").slice(0, 400) : "",
       source: sourceEl ? sourceEl.innerText.trim().replace(/\s+/g, " ").slice(0, 80) : ""
     };
-  });
+  }));
 })()`
 
 // Search navigates to the baidu SERP for the given query, then extracts
@@ -61,14 +60,9 @@ func Search(client *browser.Client, query string, limit int, includeAll bool) ([
 		return nil, fmt.Errorf("navigate to SERP: %w", err)
 	}
 
-	raw, err := client.Evaluate(extractorJS)
-	if err != nil {
-		return nil, fmt.Errorf("extract results: %w", err)
-	}
-
 	var results []Result
-	if err := json.Unmarshal(raw, &results); err != nil {
-		return nil, fmt.Errorf("parse extractor output: %w", err)
+	if err := client.EvaluateJSON(extractorJS, &results); err != nil {
+		return nil, fmt.Errorf("extract results: %w", err)
 	}
 
 	if !includeAll {

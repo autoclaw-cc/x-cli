@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"google-cli/browser"
 )
@@ -13,9 +14,8 @@ type SearchResult struct {
 	Snippet string `json:"snippet"`
 }
 
-// Extraction JS — async IIFE that waits for results to mount before reading
-// the DOM (navigate() returns before Google's response is rendered).
-// See ARCHAEOLOGY.md §"Feature A" for selector reasoning.
+// searchExtractJS waits for Google's results to mount, then extracts title/url/snippet.
+// Returns a JSON string for EvaluateJSON compatibility.
 const searchExtractJS = `
 (async () => {
   const deadline = Date.now() + 8000;
@@ -78,8 +78,16 @@ func FetchSearch(client *browser.Client, query string, limit int, hl string) ([]
 	if payload.Consent {
 		return nil, ErrConsentRequired{}
 	}
-	if len(payload.Items) > limit {
-		payload.Items = payload.Items[:limit]
+
+	// Drop entries with empty URLs — they're not actionable links.
+	filtered := payload.Items[:0]
+	for _, item := range payload.Items {
+		if strings.TrimSpace(item.URL) != "" {
+			filtered = append(filtered, item)
+		}
 	}
-	return payload.Items, nil
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+	return filtered, nil
 }

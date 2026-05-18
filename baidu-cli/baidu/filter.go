@@ -1,33 +1,38 @@
 package baidu
 
-// filterOrganic removes "aladdin card" results (百科卡片、AI 回答卡片、相关搜索、
-// 视频推荐等) and keeps only organic web results that have meaningful content.
+import "strings"
+
+// filterOrganic removes non-organic results from a Baidu SERP and keeps only
+// genuine web results.  Baidu mixes organic results (tpl="www_index") with
+// dozens of aladdin-card types: AI answer cards, Baike summaries, video
+// recommendations, related-search stubs, etc.
 //
-// Baidu's SERP mixes organic results (tpl="www_index") with dozens of aladdin
-// card types. Some carry useful info (百科 summaries), others are ads or
-// empty recommendation stubs. The right filter depends on what the caller
-// wants — so this is the decision the user should make.
-//
-// TODO(user): implement this filter. Suggested shape (5–10 lines):
-//
-//   1. Drop results whose Title is empty.
-//   2. Decide: do you want to keep baidu-baike (tpl starts with "sg_kg_")?
-//      They often have the cleanest summary of what a thing *is*.
-//   3. Decide: drop or keep AI-generated answers (tpl="ai_agent_distribute")?
-//      They can be useful but may hallucinate.
-//   4. Always drop tpl="recommend_list" — it's the "people also searched"
-//      card and has no per-result content.
-//
-// Consider these tpl values seen in the wild:
-//   - "www_index"            → organic web result (keep)
-//   - "sg_kg_entity_san"     → baidu baike entity card (usually keep)
-//   - "ai_agent_distribute"  → AI answer card (your call)
-//   - "recommend_list"       → related searches stub (drop)
-//   - "se_com_default"       → fallback generic (usually keep)
-//
-// When you're done, set includeAll=true in cmd/root.go to bypass this
-// filter if the user passes --all.
+// The --all flag bypasses this filter entirely (callers use includeAll=true).
 func filterOrganic(results []Result) []Result {
-	// TODO(user): replace this pass-through with your filter logic.
-	return results
+	var out []Result
+	for _, r := range results {
+		// Drop empty entries (no title = no real result)
+		if strings.TrimSpace(r.Title) == "" {
+			continue
+		}
+		// Always drop "people also searched" recommendation stubs.
+		if r.Tpl == "recommend_list" {
+			continue
+		}
+		// Drop AI-generated answer cards that can hallucinate.
+		if r.Tpl == "ai_agent_distribute" {
+			continue
+		}
+		// Keep: organic web results, Baike entity cards, and generic fallbacks.
+		switch r.Tpl {
+		case "www_index", "se_com_default", "":
+			out = append(out, r)
+		default:
+			if strings.HasPrefix(r.Tpl, "sg_kg_") {
+				// Baidu Baike entity card — usually worth keeping.
+				out = append(out, r)
+			}
+		}
+	}
+	return out
 }

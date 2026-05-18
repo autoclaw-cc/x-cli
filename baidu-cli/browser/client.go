@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -73,7 +74,6 @@ func (c *Client) Evaluate(code string) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Unwrap the {type, value} envelope so callers get the raw JS return value.
 	var env struct {
 		Type  string          `json:"type"`
 		Value json.RawMessage `json:"value"`
@@ -85,4 +85,51 @@ func (c *Client) Evaluate(code string) (json.RawMessage, error) {
 		return raw, nil
 	}
 	return env.Value, nil
+}
+
+// EvaluateJSON runs `code` and decodes the stringified JSON it returns into v.
+// `code` must end with a `JSON.stringify(...)` expression.
+func (c *Client) EvaluateJSON(code string, v any) error {
+	raw, err := c.Evaluate(code)
+	if err != nil {
+		return err
+	}
+	var env struct {
+		Type  string `json:"type"`
+		Value string `json:"value"`
+	}
+	if err := json.Unmarshal(raw, &env); err != nil {
+		return fmt.Errorf("decode evaluate envelope: %w", err)
+	}
+	if env.Type != "string" {
+		return fmt.Errorf("expected evaluate type=string, got %q", env.Type)
+	}
+	if err := json.Unmarshal([]byte(env.Value), v); err != nil {
+		return fmt.Errorf("decode evaluate value: %w", err)
+	}
+	return nil
+}
+
+// evaluateWithRetry retries transient CDP execution-context errors.
+func evaluateWithRetry(client *Client, code string, out any) error {
+	delays := []time.Duration{300 * time.Millisecond, 700 * time.Millisecond, 1500 * time.Millisecond}
+	var lastErr error
+	for _, d := range delays {
+		time.Sleep(d)
+		err := client.EvaluateJSON(code, out)
+		if err == nil {
+			return nil
+		}
+		if !isTransientContextError(err) {
+			return err
+		}
+		lastErr = err
+	}
+	return lastErr
+}
+
+func isTransientContextError(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "Cannot find default execution context") ||
+		strings.Contains(msg, "Execution context was destroyed")
 }

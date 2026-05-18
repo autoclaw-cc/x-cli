@@ -56,7 +56,7 @@ func (c *Client) Call(action string, args map[string]any) (json.RawMessage, erro
 }
 
 func (c *Client) Navigate(url string) error {
-	_, err := c.Call("navigate", map[string]any{"url": url, "newTab": true})
+	_, err := c.Call("navigate", map[string]any{"url": url, "newTab": false})
 	return err
 }
 
