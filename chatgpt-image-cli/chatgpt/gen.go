@@ -88,7 +88,7 @@ func Gen(c *browser.Client, opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	stem := time.Now().Format("20060102-150405")
+	stem := time.Now().Format("20060102-150405.000")
 	outPath := filepath.Join(opts.OutDir, "chatgpt-"+stem+".png")
 	if err := os.WriteFile(outPath, pngBytes, 0o644); err != nil {
 		return nil, fmt.Errorf("write file: %w", err)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -22,6 +23,27 @@ func NewClient(session string) *Client {
 		session: session,
 		http:    &http.Client{Timeout: 90 * time.Second},
 	}
+}
+
+type Status struct {
+	Running            bool   `json:"running"`
+	ExtensionConnected bool   `json:"extension_connected"`
+	ExtensionVersion   string `json:"extension_version"`
+	Version            string `json:"version"`
+}
+
+func (c *Client) Status() (*Status, error) {
+	resp, err := c.http.Get(c.baseURL + "/status")
+	if err != nil {
+		return nil, fmt.Errorf("daemon unreachable at %s: %w", c.baseURL, err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var s Status
+	if err := json.Unmarshal(body, &s); err != nil {
+		return nil, fmt.Errorf("parse status: %w (body=%s)", err, string(body))
+	}
+	return &s, nil
 }
 
 func (c *Client) Call(action string, args map[string]any) (json.RawMessage, error) {
