@@ -6,6 +6,7 @@
 
 # Local Claude Code settings
 .claude/settings.local.json
+.claude/skills/
 
 # Universal build artifacts (per-CLI .gitignore handles each binary by name)
 /dist/
