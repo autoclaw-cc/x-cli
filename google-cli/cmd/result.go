@@ -25,6 +25,22 @@ func init() {
 			pageURL := args[0]
 
 			client := browser.NewClient("google-cli")
+
+			// Fail fast if the daemon / extension isn't ready.
+			st, err := client.Status()
+			if err != nil {
+				output.Error("daemon_unreachable", err.Error())
+				os.Exit(1)
+			}
+			if !st.Running {
+				output.Error("daemon_not_running", "kimi-webbridge daemon is not running (open the Kimi Desktop App)")
+				os.Exit(1)
+			}
+			if !st.ExtensionConnected {
+				output.Error("extension_not_connected", "Chrome WebBridge extension is not connected (see https://www.kimi.com/features/webbridge)")
+				os.Exit(1)
+			}
+
 			page, err := google.FetchResult(client, pageURL)
 			if err != nil {
 				msg := err.Error()
