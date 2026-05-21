@@ -1,5 +1,5 @@
 ---
-name: gaokao-volunteer-assistant
+name: gaokao-assistant
 description: Use when the user asks about 高考 (Chinese college entrance exam) data — score lines, one-score-one-rank tables, university info, or admission guidance. Invoke when user mentions "高考", "分数线", "一分一段", "志愿填报", "大学排名", "985", "211", or asks about college admission in China.
 ---
 
