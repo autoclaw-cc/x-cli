@@ -1,0 +1,4 @@
+/gaokao-cli
+*.exe
+*.test
+*.out
