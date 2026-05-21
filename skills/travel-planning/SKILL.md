@@ -135,8 +135,8 @@ xiaohongshu-cli screenshot <note_id> <xsec_token> [-o path.png]
 
 | Platform | Login needed | Without login | CAPTCHA risk |
 |----------|-------------|---------------|-------------|
-| Ctrip | Optional | All features work; prices may differ (no member discount) | Low — never triggered during testing |
-| Booking.com | Optional | Search works; may show "Verify email" popup if previously logged in — complete in Chrome and retry | Low |
+| Ctrip | Recommended | All features work, but prices are significantly higher without login (50%+ markup observed on the same hotel). Log in in Chrome for accurate member prices | Low — never triggered during testing |
+| Booking.com | Recommended | Search works, but displayed prices are significantly higher without login (50%+ markup observed on the same hotel). May also show "Verify email" popup — complete in Chrome and retry | Low |
 | Xiaohongshu | Read: No, Write: Yes | search, view, feeds, user all work. like/comment/post require login | Low |
 
 ## Tips
