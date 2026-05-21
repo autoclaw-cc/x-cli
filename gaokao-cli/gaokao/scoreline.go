@@ -36,7 +36,7 @@ type rawEntry struct {
 	Year           string          `json:"year"`
 	Province       string          `json:"province"`
 	ScoreSection   string          `json:"score_section"`
-	ConventionBatch bool           `json:"convention_batch"`
+	ConventionBatch bool           `json:"convention_batch"` // kept for API mirror, not exposed to output
 	Name           string          `json:"name"`
 	Diff           json.RawMessage `json:"diff"`
 }
