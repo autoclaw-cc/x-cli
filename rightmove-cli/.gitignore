@@ -1,0 +1,4 @@
+/rightmove-cli
+*.exe
+*.test
+*.out

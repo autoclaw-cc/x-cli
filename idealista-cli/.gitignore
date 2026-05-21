@@ -1,0 +1,4 @@
+/idealista-cli
+*.exe
+*.test
+*.out
