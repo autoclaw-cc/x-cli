@@ -15,11 +15,11 @@ Orchestrates 3 CLI tools to help users plan domestic and international trips —
    ```
    If not running: invoke the `kimi-webbridge` skill.
 
-2. CLI binaries available:
+2. CLI binaries available (install to `~/.local/bin/` or anywhere on `$PATH`):
    ```bash
-   ~/Desktop/code/0515webbridge/ctrip-cli/ctrip-cli --help
-   ~/Desktop/code/0515webbridge/booking-cli/booking-cli --help
-   ~/Desktop/code/0515webbridge/xiaohongshu-cli --help
+   ctrip-cli --help
+   booking-cli --help
+   xiaohongshu-cli --help
    ```
 
 ## CLI Capabilities

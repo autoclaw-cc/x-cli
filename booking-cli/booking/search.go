@@ -64,7 +64,9 @@ func SearchHotels(client *browser.Client, destination, checkin, checkout string,
 		}
 
 		var start = text.indexOf("Sort by:");
+		if (start < 0) start = text.indexOf("排序方式");
 		if (start < 0) start = text.indexOf("Search results");
+		if (start < 0) start = text.indexOf("搜索结果");
 		if (start < 0) return JSON.stringify({error: "no_results_section"});
 
 		var section = text.substring(start);
@@ -78,7 +80,7 @@ func SearchHotels(client *browser.Client, destination, checkin, checkout string,
 			var l = lines[i].trim();
 
 			// Detect hotel name: line followed by "Opens in new window"
-			if (i + 1 < lines.length && lines[i+1].trim() === "Opens in new window") {
+			if (i + 1 < lines.length && (lines[i+1].trim() === "Opens in new window" || lines[i+1].trim() === "在新窗口中打开")) {
 				var hotel = {
 					name: l,
 					location: "",
@@ -103,8 +105,8 @@ func SearchHotels(client *browser.Client, destination, checkin, checkout string,
 					var fl = lines[i].trim();
 					fieldCount++;
 
-					if (i + 1 < lines.length && lines[i+1].trim() === "Opens in new window") break;
-					if (/Show on map/.test(fl)) {
+					if (i + 1 < lines.length && (lines[i+1].trim() === "Opens in new window" || lines[i+1].trim() === "在新窗口中打开")) break;
+					if (/Show on map|在地图上显示/.test(fl)) {
 						hotel.location = fl.replace(/Show on map.*/, "").trim();
 						var distMatch = fl.match(/(\d[\d.]+ [km]+ from centre)/);
 						if (distMatch) hotel.distance = distMatch[1];
@@ -112,19 +114,19 @@ func SearchHotels(client *browser.Client, destination, checkin, checkout string,
 						// skip, the actual score is the next line
 					} else if (/^\d\.\d$/.test(fl)) {
 						hotel.score = fl;
-					} else if (/Superb|Exceptional|Very [Gg]ood|Good|Fabulous|Wonderful|Pleasant|Review score/.test(fl)) {
+					} else if (/Superb|Exceptional|Very [Gg]ood|Good|Fabulous|Wonderful|Pleasant|Review score|好极了|很棒|非常好|不错|优秀|卓越|评分/.test(fl)) {
 						hotel.score_word = fl;
-					} else if (/reviews?$/.test(fl)) {
+					} else if (/reviews?$|条评论|条住客评价/.test(fl)) {
 						hotel.reviews = fl;
 					} else if (/Room|Suite|Dormitory|Studio|Apartment|Bed in/.test(fl) && !hotel.room_type) {
 						hotel.room_type = fl;
 					} else if (/bed/.test(fl) && !hotel.bed_type) {
 						hotel.bed_type = fl;
-					} else if (/Free cancellation/.test(fl)) {
+					} else if (/Free cancellation|免费取消/.test(fl)) {
 						hotel.free_cancellation = true;
-					} else if (/Getaway Deal|Early .* Deal|Limited-time/.test(fl)) {
+					} else if (/Getaway Deal|Early .* Deal|Limited-time|\u9650\u65f6\u4f18\u60e0|\u65e9\u9e1f\u4f18\u60e0/.test(fl)) {
 						hotel.deal = fl;
-					} else if (/^\d+ night/.test(fl)) {
+					} else if (/^\d+ night|^\d+ \u665a/.test(fl)) {
 						hotel.duration = fl;
 					} else if (/^S\$|^US\$|^¥|^€|^£|^A\$|^C\$|^HK\$/.test(fl)) {
 						if (!hotel.price) {
@@ -135,7 +137,7 @@ func SearchHotels(client *browser.Client, destination, checkin, checkout string,
 						if (m) hotel.price = m[1];
 						var om = fl.match(/Original price (.+?)\./);
 						if (om) hotel.orig_price = om[1];
-					} else if (fl === "See availability") {
+					} else if (fl === "See availability" || fl === "查看供应情况" || fl === "查看价格") {
 						// End of this hotel
 						break;
 					}
