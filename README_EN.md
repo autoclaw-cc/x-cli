@@ -61,32 +61,7 @@ Once installed, just say "Build me a CLI for example.com" in conversation to tri
 
 ## Included CLIs
 
-Browse by scenario. Each CLI builds and runs independently:
-
-### 🔍 Search & scraping
-- [`baidu-cli`](./baidu-cli/) — Baidu search, JSON output
-- [`google-cli`](./google-cli/) — Google search + page scraping, JSON output
-
-### 🎨 Image generation
-- [`nanobanana-cli`](./nanobanana-cli/) — Google Gemini 2.5 Flash Image (Nano Banana)
-- [`chatgpt-image-cli`](./chatgpt-image-cli/) — chatgpt.com/images
-
-### ✈️ Travel planning
-- [`ctrip-cli`](./ctrip-cli/) — Ctrip hotels / flights / attractions / destination guides
-- [`booking-cli`](./booking-cli/) — Booking.com international hotels
-- Companion skill: [`travel-planning`](./skills/travel-planning/) — orchestrates the tools above for end-to-end trip planning
-
-### 🏠 Rental listings
-- [`58-cli`](./58-cli/) — 58.com (China)
-- [`anjuke-cli`](./anjuke-cli/) — Anjuke (China)
-- [`apartments-cli`](./apartments-cli/) — Apartments.com (US)
-- [`rightmove-cli`](./rightmove-cli/) — Rightmove (UK)
-- [`idealista-cli`](./idealista-cli/) — Idealista (ES / IT / PT)
-- Companion skill: [`rental-assistant`](./skills/rental-assistant/) — cross-platform rental comparison
-
-### 🎓 Gaokao (college admissions, China)
-- [`gaokao-cli`](./gaokao-cli/) — score lines / colleges / majors lookup (public CDN data)
-- Companion skill: [`gaokao-assistant`](./skills/gaokao-assistant/) — gaokao admissions decision assistant
+See [CLIs_EN.md](./CLIs_EN.md) for the full list — covers search, image generation, travel, rental listings, and gaokao admissions.
 
 ## Install prebuilt binaries
 
