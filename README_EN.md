@@ -32,6 +32,8 @@ You can be more specific too: "May 1st, Shanghai to Chiang Mai round-trip, budge
 2. `npx skills add better-world-ai/x-cli --skill travel-planning`
 3. Open Claude and send the sentence above
 
+Full recipe (中文): [recipes/plan-kyoto-trip.md](./recipes/plan-kyoto-trip.md)
+
 ---
 
 ### 🏠 Search rentals across countries in one shot
@@ -50,6 +52,8 @@ Tell the AI your budget, layout, and commute distance once. It queries five plat
 3. `npx skills add better-world-ai/x-cli --skill rental-assistant`
 4. Open Claude and send the sentence above
 
+Full recipe (中文): [recipes/find-shanghai-rental.md](./recipes/find-shanghai-rental.md)
+
 ---
 
 ### 🎓 Gaokao admissions: all the info you need on one screen
@@ -67,6 +71,8 @@ Ask the AI one question. It pulls official score lines, three years of admission
 2. `npx skills add better-world-ai/x-cli --skill gaokao-assistant`
 3. Open Claude and send the sentence above
 
+Full recipe (中文): [recipes/gaokao-jiangsu-211.md](./recipes/gaokao-jiangsu-211.md)
+
 ---
 
 ### 🎨 AI images without manually saving each one
@@ -83,6 +89,8 @@ Describe what you want to the AI. It uses your already-logged-in Chrome to drive
 1. Download chatgpt-image-cli or nanobanana-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
 2. Open Claude and send the sentence above
 
+Full recipe (中文): [recipes/batch-image-shiba-inu.md](./recipes/batch-image-shiba-inu.md)
+
 ---
 
 ### 🔍 Research a topic: search, read, summarize
@@ -98,6 +106,8 @@ Hand that loop to the AI. It runs the search, follows each result, pulls the bod
 **Try it now**:
 1. Download google-cli or baidu-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
 2. Open Claude and send the sentence above
+
+Full recipe (中文): [recipes/research-local-ai-models.md](./recipes/research-local-ai-models.md)
 
 ---
 

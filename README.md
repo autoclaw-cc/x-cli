@@ -32,6 +32,8 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 2. `npx skills add better-world-ai/x-cli --skill travel-planning`
 3. 打开 Claude，发上面那句话
 
+完整脚本：[recipes/plan-kyoto-trip.md](./recipes/plan-kyoto-trip.md)
+
 ---
 
 ### 🏠 一次找完几个国家的房
@@ -50,6 +52,8 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 3. `npx skills add better-world-ai/x-cli --skill rental-assistant`
 4. 打开 Claude，发上面那句话
 
+完整脚本：[recipes/find-shanghai-rental.md](./recipes/find-shanghai-rental.md)
+
 ---
 
 ### 🎓 高考志愿，把决定要的信息摆齐
@@ -67,6 +71,8 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 2. `npx skills add better-world-ai/x-cli --skill gaokao-assistant`
 3. 打开 Claude，发上面那句话
 
+完整脚本：[recipes/gaokao-jiangsu-211.md](./recipes/gaokao-jiangsu-211.md)
+
 ---
 
 ### 🎨 让 AI 画图，不用一张一张右键保存
@@ -83,6 +89,8 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 1. 从 [Releases](https://github.com/better-world-ai/x-cli/releases) 下 chatgpt-image-cli 或 nanobanana-cli
 2. 打开 Claude，发上面那句话
 
+完整脚本：[recipes/batch-image-shiba-inu.md](./recipes/batch-image-shiba-inu.md)
+
 ---
 
 ### 🔍 一个话题搜完、读完、整理完
@@ -98,6 +106,8 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 **现在就试**：
 1. 从 [Releases](https://github.com/better-world-ai/x-cli/releases) 下 google-cli 或 baidu-cli
 2. 打开 Claude，发上面那句话
+
+完整脚本：[recipes/research-local-ai-models.md](./recipes/research-local-ai-models.md)
 
 ---
 
