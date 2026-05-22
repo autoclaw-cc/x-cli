@@ -15,7 +15,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
 ## Build your own CLI
 
-All the CLIs in this repo were produced automatically by AI agents using the `skills/agent-cli-creator/` skill. Set your agent up with the toolchain below, then say "Build me a CLI for example.com" — that's it.
+All the CLIs in this repo were produced automatically by AI agents using the [`agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) skill. Set your agent up with the toolchain below, then say "Build me a CLI for example.com" — that's it.
 
 ### Prerequisites
 
@@ -34,13 +34,13 @@ To let the agent actually drive your browser, install [kimi-webbridge](https://w
 ### Install the skill
 
 ```bash
-npx skills add better-world-ai/x-cli
+npx skills add better-world-ai/agent-cli-creator
 ```
 
 <details>
 <summary>No Node.js? Manual install</summary>
 
-Copy `skills/agent-cli-creator/` into your agent's skills directory (for Claude Code that's `~/.claude/skills/`). Not sure where it goes? Paste this README section to your agent — it'll figure it out.
+Copy the contents of the [`better-world-ai/agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) repo into your agent's skills directory under an `agent-cli-creator/` subdirectory (for Claude Code that's `~/.claude/skills/agent-cli-creator/`). Not sure where it goes? Paste this README section to your agent — it'll figure it out.
 
 </details>
 

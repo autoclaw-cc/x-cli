@@ -46,4 +46,4 @@ AI 查官方分数线和往年录取数据，结合你的位次和偏好，给�
 
 ---
 
-想做新的场景？用 [`agent-cli-creator`](./skills/agent-cli-creator/) skill——一句中文需求，AI 帮你做出新的 CLI。详见主 README 的「自己做一个新 CLI」。
+想做新的场景？用 [`agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) skill——一句中文需求，AI 帮你做出新的 CLI。详见主 README 的「自己做一个新 CLI」。

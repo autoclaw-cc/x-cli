@@ -46,4 +46,4 @@ Uses: [google-cli](./google-cli/) · [baidu-cli](./baidu-cli/)
 
 ---
 
-Want a new scenario? Use the [`agent-cli-creator`](./skills/agent-cli-creator/) skill — one plain-language sentence and the AI builds you a new CLI. See "Build your own CLI" in the main README.
+Want a new scenario? Use the [`agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) skill — one plain-language sentence and the AI builds you a new CLI. See "Build your own CLI" in the main README.
