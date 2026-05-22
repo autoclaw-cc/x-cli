@@ -28,7 +28,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 2. **本地 skill**，让 agent 知道怎么用上面那个插件。装好：
 
    ```bash
-   curl -fsSL https://kimi-web-img.moonshot.cn/webbridge/install.sh | bash
+   curl -fsSL https://cdn.kimi.com/webbridge/install.sh | bash
    ```
 
 ### 安装 skill
