@@ -23,10 +23,6 @@ var rootCmd = &cobra.Command{
 
 var searchCountry string
 var searchCity string
-var searchMinPrice int
-var searchMaxPrice int
-var searchMinRooms int
-var searchMaxRooms int
 var searchLimit int
 var searchPage int
 
@@ -35,24 +31,20 @@ var searchCmd = &cobra.Command{
 	Short: "Search rental properties on Idealista",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !isValidCountry(searchCountry) {
-			output.Error("INVALID_COUNTRY", fmt.Sprintf("country must be one of: %v", validCountries))
+			output.Error("invalid_country", fmt.Sprintf("country must be one of: %v", validCountries))
 			return fmt.Errorf("invalid country")
 		}
 
 		client := browser.NewClient(sessionName)
 		params := property.SearchParams{
-			Country:  searchCountry,
-			City:     searchCity,
-			MinPrice: searchMinPrice,
-			MaxPrice: searchMaxPrice,
-			MinRooms: searchMinRooms,
-			MaxRooms: searchMaxRooms,
-			Limit:    searchLimit,
-			Page:     searchPage,
+			Country: searchCountry,
+			City:    searchCity,
+			Limit:   searchLimit,
+			Page:    searchPage,
 		}
 		result, err := property.Search(client, params)
 		if err != nil {
-			output.Error("SEARCH_ERROR", err.Error())
+			output.Error("search_error", err.Error())
 			return err
 		}
 		output.Success(result)
@@ -69,14 +61,14 @@ var detailCmd = &cobra.Command{
 	Short: "Get detailed info for a single property listing",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if detailURL == "" {
-			output.Error("MISSING_URL", "--url is required")
+			output.Error("missing_param", "--url is required")
 			return fmt.Errorf("missing url")
 		}
 
 		client := browser.NewClient(sessionName)
-		detail, err := property.Detail(client, detailURL)
+		detail, err := property.GetDetail(client, detailURL)
 		if err != nil {
-			output.Error("DETAIL_ERROR", err.Error())
+			output.Error("detail_error", err.Error())
 			return err
 		}
 		output.Success(detail)
@@ -96,11 +88,7 @@ func isValidCountry(c string) bool {
 func init() {
 	// search flags
 	searchCmd.Flags().StringVar(&searchCountry, "country", "", "Country: spain, italy, portugal (required)")
-	searchCmd.Flags().StringVar(&searchCity, "city", "", "City name, e.g. madrid, barcelona, rome, lisbon (required)")
-	searchCmd.Flags().IntVar(&searchMinPrice, "min-price", 0, "Minimum monthly rent in EUR")
-	searchCmd.Flags().IntVar(&searchMaxPrice, "max-price", 0, "Maximum monthly rent in EUR")
-	searchCmd.Flags().IntVar(&searchMinRooms, "min-rooms", 0, "Minimum number of rooms")
-	searchCmd.Flags().IntVar(&searchMaxRooms, "max-rooms", 0, "Maximum number of rooms")
+	searchCmd.Flags().StringVar(&searchCity, "city", "", "City slug, e.g. madrid-madrid, barcelona-barcelona, roma, lisboa (required)")
 	searchCmd.Flags().IntVar(&searchLimit, "limit", 20, "Max results to return")
 	searchCmd.Flags().IntVar(&searchPage, "page", 1, "Page number")
 	_ = searchCmd.MarkFlagRequired("country")

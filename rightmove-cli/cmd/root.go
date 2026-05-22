@@ -32,7 +32,6 @@ func init() {
 			radius, _ := cmd.Flags().GetFloat64("radius")
 			limit, _ := cmd.Flags().GetInt("limit")
 			page, _ := cmd.Flags().GetInt("page")
-			propType, _ := cmd.Flags().GetString("type")
 
 			if location == "" {
 				output.Error("missing_param", "--location is required (e.g. \"London\", \"Manchester\")")
@@ -49,7 +48,6 @@ func init() {
 				Radius:   radius,
 				Limit:    limit,
 				Page:     page,
-				Type:     propType,
 			})
 			if err != nil {
 				output.Error("search_error", err.Error())
@@ -66,7 +64,6 @@ func init() {
 	searchCmd.Flags().Float64("radius", 0, "Search radius in miles")
 	searchCmd.Flags().Int("limit", 20, "Maximum number of results to return")
 	searchCmd.Flags().Int("page", 1, "Page number")
-	searchCmd.Flags().String("type", "rent", "Listing type: rent or flatshare")
 
 	detailCmd := &cobra.Command{
 		Use:   "detail",

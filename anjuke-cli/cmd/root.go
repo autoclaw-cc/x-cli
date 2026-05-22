@@ -29,7 +29,6 @@ func init() {
 			keyword, _ := cmd.Flags().GetString("keyword")
 			minPrice, _ := cmd.Flags().GetInt("min-price")
 			maxPrice, _ := cmd.Flags().GetInt("max-price")
-			rooms, _ := cmd.Flags().GetInt("rooms")
 			limit, _ := cmd.Flags().GetInt("limit")
 			page, _ := cmd.Flags().GetInt("page")
 
@@ -52,7 +51,6 @@ func init() {
 				Keyword:  keyword,
 				MinPrice: minPrice,
 				MaxPrice: maxPrice,
-				Rooms:    rooms,
 				Limit:    limit,
 				Page:     page,
 			})
@@ -67,7 +65,6 @@ func init() {
 	searchCmd.Flags().String("keyword", "", "搜索关键词（区域/小区名）")
 	searchCmd.Flags().Int("min-price", 0, "最低月租")
 	searchCmd.Flags().Int("max-price", 0, "最高月租")
-	searchCmd.Flags().Int("rooms", 0, "几室 (1/2/3)")
 	searchCmd.Flags().Int("limit", 20, "最大返回数量")
 	searchCmd.Flags().Int("page", 1, "页码")
 

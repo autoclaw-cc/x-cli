@@ -42,7 +42,6 @@ type SearchParams struct {
 	Radius   float64
 	Limit    int
 	Page     int
-	Type     string
 }
 
 func Search(client *browser.Client, params SearchParams) (*SearchResult, error) {

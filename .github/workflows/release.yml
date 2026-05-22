@@ -15,6 +15,11 @@ on:
       - 'google-cli/v*'
       - 'nanobanana-cli/v*'
       - 'chatgpt-image-cli/v*'
+      - '58-cli/v*'
+      - 'anjuke-cli/v*'
+      - 'apartments-cli/v*'
+      - 'rightmove-cli/v*'
+      - 'idealista-cli/v*'
   workflow_dispatch:
     inputs:
       cli:
@@ -26,6 +31,11 @@ on:
           - google-cli
           - nanobanana-cli
           - chatgpt-image-cli
+          - 58-cli
+          - anjuke-cli
+          - apartments-cli
+          - rightmove-cli
+          - idealista-cli
       version:
         description: 'Version label (e.g. v0.0.0-test). Used in release name only.'
         required: true
