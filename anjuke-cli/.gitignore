@@ -1,0 +1,4 @@
+/anjuke-cli
+*.exe
+*.test
+*.out

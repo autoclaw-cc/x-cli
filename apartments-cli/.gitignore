@@ -1,0 +1,4 @@
+/apartments-cli
+*.exe
+*.test
+*.out
