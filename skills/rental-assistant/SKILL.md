@@ -25,7 +25,13 @@ kimi-webbridge daemon 必须运行：
 | `rightmove-cli` | Rightmove | 英国全境 | 否 |
 | `idealista-cli` | Idealista | 西班牙/意大利/葡萄牙 | 否 |
 
-**辅助工具**: `xiaohongshu-cli` 可搜索租房攻略和避坑经验（非结构化房源）。
+**辅助工具**: `xiaohongshu-cli` 可搜索租房攻略和避坑经验（非结构化房源）。通过 Homebrew 安装：
+
+```bash
+brew install xpzouying/agent-cli/xiaohongshu-cli
+```
+
+（一次性 tap：`brew tap xpzouying/agent-cli`。覆盖 macOS arm64/amd64 和 Linux amd64/arm64）
 
 所有 CLI 输出统一格式：`{"ok": true, "data": {...}}` / `{"ok": false, "error": {"code": "...", "message": "..."}}`
 
