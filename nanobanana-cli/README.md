@@ -36,7 +36,7 @@ Each run saves two files into `-o <dir>`:
 - **Kimi Desktop App** running — bundles the `kimi-webbridge` daemon on `http://127.0.0.1:10086`. Install: <https://www.kimi.com/features/webbridge>
 - **Chrome** with the WebBridge extension installed and connected (status check: `curl http://127.0.0.1:10086/status` should report `extension_connected: true`)
 - **Gemini logged in** in that Chrome — the CLI reuses your cookies via the real browser
-- **Go 1.22+** to build
+- **Go 1.25+** to build (matches `go.mod`)
 
 ## Install
 
@@ -142,4 +142,4 @@ nanobanana-cli/
 
 ## License
 
-MIT (see `LICENSE`).
+MIT — see [LICENSE](./LICENSE).

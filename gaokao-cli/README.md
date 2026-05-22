@@ -65,4 +65,4 @@ gaokao-cli/
 
 ## License
 
-MIT (see repo root `LICENSE`).
+MIT — see [LICENSE](../LICENSE).
