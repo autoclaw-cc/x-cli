@@ -22,10 +22,15 @@ or on failure (non-zero exit):
 
 ## Prerequisites
 
-1. **kimi-webbridge daemon** running on `127.0.0.1:10086` — install from https://www.kimi.com/features/webbridge.
-2. **Go 1.25+** for building.
+**kimi-webbridge daemon** running on `127.0.0.1:10086` — install from https://www.kimi.com/features/webbridge.
 
-## Build
+## Install
+
+**Pre-built binary (recommended)**: download `58-cli-{platform}.tar.gz` from [Releases](https://github.com/better-world-ai/x-cli/releases?q=58-cli) and extract. macOS users: clear the Gatekeeper quarantine once with `xattr -d com.apple.quarantine ./58-cli`.
+
+Available platforms: `darwin-{arm64,amd64}`, `linux-{amd64,arm64}`, `windows-{amd64,arm64}`.
+
+**Build from source** (requires Go 1.25+):
 
 ```bash
 go build -o 58-cli .
@@ -59,4 +64,4 @@ sz=深圳, sh=上海, bj=北京, gz=广州, cd=成都, hz=杭州, nj=南京, wh=
 
 ## License
 
-MIT (see `LICENSE` — to be added).
+MIT — see [LICENSE](../LICENSE).

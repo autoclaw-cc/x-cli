@@ -22,10 +22,15 @@ or on failure (non-zero exit):
 
 ## Prerequisites
 
-1. **kimi-webbridge daemon** running on `127.0.0.1:10086` — install from https://www.kimi.com/features/webbridge.
-2. **Go 1.25+** for building.
+**kimi-webbridge daemon** running on `127.0.0.1:10086` — install from https://www.kimi.com/features/webbridge.
 
-## Build
+## Install
+
+**Pre-built binary (recommended)**: download `booking-cli-{platform}.tar.gz` from [Releases](https://github.com/better-world-ai/x-cli/releases?q=booking-cli) and extract. macOS users: clear the Gatekeeper quarantine once with `xattr -d com.apple.quarantine ./booking-cli`.
+
+Available platforms: `darwin-{arm64,amd64}`, `linux-{amd64,arm64}`, `windows-{amd64,arm64}`.
+
+**Build from source** (requires Go 1.21+):
 
 ```bash
 go build -o booking-cli .
@@ -57,4 +62,4 @@ booking-cli/
 
 ## License
 
-MIT (see `LICENSE` — to be added).
+MIT — see [LICENSE](../LICENSE).
