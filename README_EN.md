@@ -59,9 +59,9 @@ Once installed, just say "Build me a CLI for example.com" in conversation to tri
    example-cli post --content "hello"
    ```
 
-## Included CLIs
+## What you can do
 
-See [CLIs_EN.md](./CLIs_EN.md) for the full list — covers search, image generation, travel, rental listings, and gaokao admissions.
+Five ready-made scenarios: travel planning, cross-platform rentals, gaokao admissions, AI image generation, and search/scrape — see [Scenarios_EN.md](./Scenarios_EN.md).
 
 ## Install prebuilt binaries
 

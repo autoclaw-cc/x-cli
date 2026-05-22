@@ -59,9 +59,9 @@ npx skills add better-world-ai/x-cli
    example-cli post --content "hello"
    ```
 
-## 包含的 CLI
+## 能做什么
 
-完整列表见 [CLIs.md](./CLIs.md)，涵盖搜索、图片生成、旅游、租房、高考升学等场景。
+5 个已经做好的场景：旅游规划、跨平台找房、高考志愿、AI 画图、搜索抓取——见 [Scenarios.md](./Scenarios.md)。
 
 ## 安装预编译二进制
 
