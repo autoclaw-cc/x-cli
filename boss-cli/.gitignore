@@ -1,0 +1,4 @@
+/boss-cli
+*.exe
+*.test
+*.out
