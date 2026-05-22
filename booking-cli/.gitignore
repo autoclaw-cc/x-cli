@@ -1,0 +1,4 @@
+/booking-cli
+*.exe
+*.test
+*.out

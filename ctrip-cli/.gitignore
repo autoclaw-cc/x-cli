@@ -1,0 +1,4 @@
+/ctrip-cli
+*.exe
+*.test
+*.out
