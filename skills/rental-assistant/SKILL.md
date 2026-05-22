@@ -133,7 +133,7 @@ idealista-cli detail --country spain --url "https://www.idealista.com/inmueble/x
 | 参数 | 说明 |
 |------|------|
 | `--country` | spain / italy / portugal |
-| `--city` | 城市 slug（spain: madrid-madrid, barcelona-barcelona, valencia-valencia, sevilla-sevilla; italy: roma, milano, firenze; portugal: lisboa, porto） |
+| `--city` | 城市 slug（spain: madrid-madrid, barcelona-barcelona, valencia, sevilla; italy: roma, milano, firenze; portugal: lisboa, porto） |
 | `--limit` | 返回数量（默认 20） |
 
 > 价格/房间数过滤暂未实现（idealista 用 path-based 过滤，需要按 country 分别编码）。需要过滤先全量拉取后在调用方筛选。
