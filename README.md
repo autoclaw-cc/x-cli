@@ -59,34 +59,9 @@ npx skills add better-world-ai/x-cli
    example-cli post --content "hello"
    ```
 
-## 包含的 CLI
+## 能做什么
 
-按场景速查，每个 CLI 都可独立编译使用：
-
-### 🔍 搜索 & 抓取
-- [`baidu-cli`](./baidu-cli/) — 百度搜索，输出 JSON
-- [`google-cli`](./google-cli/) — Google 搜索 + 网页抓取，输出 JSON
-
-### 🎨 图片生成
-- [`nanobanana-cli`](./nanobanana-cli/) — Google Gemini 2.5 Flash Image (Nano Banana)
-- [`chatgpt-image-cli`](./chatgpt-image-cli/) — chatgpt.com/images
-
-### ✈️ 旅游规划
-- [`ctrip-cli`](./ctrip-cli/) — 携程酒店 / 机票 / 景点 / 目的地速查
-- [`booking-cli`](./booking-cli/) — Booking.com 海外酒店
-- 配套 skill：[`travel-planning`](./skills/travel-planning/) — 让 agent 串起多个工具做完整行程
-
-### 🏠 租房
-- [`58-cli`](./58-cli/) — 58同城（中国）
-- [`anjuke-cli`](./anjuke-cli/) — 安居客（中国）
-- [`apartments-cli`](./apartments-cli/) — Apartments.com（美国）
-- [`rightmove-cli`](./rightmove-cli/) — Rightmove（英国）
-- [`idealista-cli`](./idealista-cli/) — Idealista（西/意/葡）
-- 配套 skill：[`rental-assistant`](./skills/rental-assistant/) — 跨平台对比租房房源
-
-### 🎓 高考升学
-- [`gaokao-cli`](./gaokao-cli/) — 分数线 / 院校 / 专业查询（基于公开 CDN 数据）
-- 配套 skill：[`gaokao-assistant`](./skills/gaokao-assistant/) — 高考志愿辅助决策
+5 个已经做好的场景：旅游规划、跨平台找房、高考志愿、AI 画图、搜索抓取——见 [Scenarios.md](./Scenarios.md)。
 
 ## 安装预编译二进制
 
