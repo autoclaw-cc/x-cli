@@ -20,6 +20,9 @@ on:
       - 'apartments-cli/v*'
       - 'rightmove-cli/v*'
       - 'idealista-cli/v*'
+      - 'gaokao-cli/v*'
+      - 'booking-cli/v*'
+      - 'ctrip-cli/v*'
   workflow_dispatch:
     inputs:
       cli:
@@ -36,6 +39,9 @@ on:
           - apartments-cli
           - rightmove-cli
           - idealista-cli
+          - gaokao-cli
+          - booking-cli
+          - ctrip-cli
       version:
         description: 'Version label (e.g. v0.0.0-test). Used in release name only.'
         required: true
