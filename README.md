@@ -15,7 +15,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
 ## 自己做一个新 CLI
 
-仓库里几个 CLI 都是用 `skills/agent-cli-creator/` 这个 skill，让 AI agent 自动产出的。给你的 agent 装好下面这一套，对它说一句「帮我给 example.com 做个 CLI」就行。
+仓库里几个 CLI 都是用 [`agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) 这个 skill，让 AI agent 自动产出的。给你的 agent 装好下面这一套，对它说一句「帮我给 example.com 做个 CLI」就行。
 
 ### 前置依赖
 
@@ -34,13 +34,13 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 ### 安装 skill
 
 ```bash
-npx skills add better-world-ai/x-cli
+npx skills add better-world-ai/agent-cli-creator
 ```
 
 <details>
 <summary>没有 Node.js？手动安装</summary>
 
-把 `skills/agent-cli-creator/` 复制到你 agent 的 skills 目录即可（Claude Code 是 `~/.claude/skills/`）。不确定路径？把这一段 README 丢给你的 agent，它会自己判断。
+把 [`better-world-ai/agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) 仓库的内容复制到你 agent 的 skills 目录下的 `agent-cli-creator/` 子目录里（Claude Code 是 `~/.claude/skills/agent-cli-creator/`）。不确定路径？把这一段 README 丢给你的 agent，它会自己判断。
 
 </details>
 
