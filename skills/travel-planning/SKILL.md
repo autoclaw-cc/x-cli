@@ -15,11 +15,25 @@ Orchestrates 3 CLI tools to help users plan domestic and international trips —
    ```
    If not running: invoke the `kimi-webbridge` skill.
 
-2. CLI binaries available (install to `~/.local/bin/` or anywhere on `$PATH`):
+2. CLI binaries on `$PATH`:
+
+   - **xiaohongshu-cli** — install via Homebrew:
+     ```bash
+     brew install xpzouying/agent-cli/xiaohongshu-cli
+     ```
+     (One-time tap setup: `brew tap xpzouying/agent-cli`. Covers macOS arm64/amd64 and Linux amd64/arm64.)
+
+   - **ctrip-cli** and **booking-cli** — build from source:
+     ```bash
+     git clone https://github.com/better-world-ai/x-cli
+     cd x-cli/ctrip-cli   && go build -o ~/.local/bin/ctrip-cli   . && cd ..
+     cd booking-cli       && go build -o ~/.local/bin/booking-cli .
+     ```
+     Ensure `~/.local/bin` is on your `$PATH`.
+
+   Sanity check:
    ```bash
-   ctrip-cli --help
-   booking-cli --help
-   xiaohongshu-cli --help
+   ctrip-cli --help && booking-cli --help && xiaohongshu-cli --help
    ```
 
 ## CLI Capabilities
