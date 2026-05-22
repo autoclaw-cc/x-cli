@@ -32,7 +32,7 @@ You can be more specific too: "May 1st, Shanghai to Chiang Mai round-trip, budge
 2. `npx skills add better-world-ai/x-cli --skill travel-planning`
 3. Open Claude and send the sentence above
 
-Full recipe (中文): [recipes/plan-kyoto-trip.md](./recipes/plan-kyoto-trip.md)
+Full recipe (Chinese only): [recipes/plan-kyoto-trip.md](./recipes/plan-kyoto-trip.md)
 
 ---
 
@@ -40,9 +40,9 @@ Full recipe (中文): [recipes/plan-kyoto-trip.md](./recipes/plan-kyoto-trip.md)
 
 > "Find me a 1-bedroom in central London under £2000/month"
 
-11 PM and you're still bouncing between 58.com, Anjuke, and Beike — refresh, load, retype filters, and half the listings turn out to be fake. Going abroad is worse: London means learning Rightmove, Madrid means Idealista, and every site's filter UI is different.
+11 PM and you're still bouncing between rental sites — refresh, load, retype filters, and half the listings turn out to be fake. Hunting across countries is worse: London needs Rightmove, Madrid needs Idealista, Shanghai needs 58.com and Anjuke, and every site's filter UI is different.
 
-Tell the AI your budget, layout, and commute distance once. It queries five platforms in parallel, filters by your criteria, and gives you a single side-by-side list. Same prompt whether you're hunting domestic shares or long-term overseas rentals.
+Tell the AI your budget, layout, and commute distance once. It queries five platforms in parallel, filters by your criteria, and gives you a single side-by-side list. Same approach whether you're hunting in Shanghai or London.
 
 **Uses**: [58-cli](./58-cli/) + [anjuke-cli](./anjuke-cli/) + [apartments-cli](./apartments-cli/) + [rightmove-cli](./rightmove-cli/) + [idealista-cli](./idealista-cli/) + [rental-assistant](./skills/rental-assistant/) skill; helper `xiaohongshu-cli` for rental tips
 
@@ -52,7 +52,7 @@ Tell the AI your budget, layout, and commute distance once. It queries five plat
 3. `npx skills add better-world-ai/x-cli --skill rental-assistant`
 4. Open Claude and send the sentence above
 
-Full recipe (中文): [recipes/find-shanghai-rental.md](./recipes/find-shanghai-rental.md)
+Full recipe (Chinese only): [recipes/find-shanghai-rental.md](./recipes/find-shanghai-rental.md)
 
 ---
 
@@ -60,7 +60,7 @@ Full recipe (中文): [recipes/find-shanghai-rental.md](./recipes/find-shanghai-
 
 > "I'm a Jiangsu test-taker with 580 points — which 211 schools can I get into?"
 
-Scores are out. The application form is due in three days. Your provincial rank lands in some awkward bracket, prior-year admissions data is scattered across a dozen webpages and a few outdated PDFs, and the relatives' "experience-based advice" only makes it more confusing.
+Scores are out. The application form is due in three days. Your provincial rank lands in some awkward bracket, prior-year admissions data is scattered across a dozen webpages and a few outdated PDFs, and well-meaning advice from older relatives only makes things more confusing.
 
 Ask the AI one question. It pulls official score lines, three years of admissions ranks, and corresponding majors, then ranks reach/target/safety schools based on your preferences. It won't decide for you, but everything you need to decide is on one screen.
 
@@ -71,7 +71,7 @@ Ask the AI one question. It pulls official score lines, three years of admission
 2. `npx skills add better-world-ai/x-cli --skill gaokao-assistant`
 3. Open Claude and send the sentence above
 
-Full recipe (中文): [recipes/gaokao-jiangsu-211.md](./recipes/gaokao-jiangsu-211.md)
+Full recipe (Chinese only): [recipes/gaokao-jiangsu-211.md](./recipes/gaokao-jiangsu-211.md)
 
 ---
 
@@ -81,7 +81,7 @@ Full recipe (中文): [recipes/gaokao-jiangsu-211.md](./recipes/gaokao-jiangsu-2
 
 You need an image for a slide — open ChatGPT's web app, type the prompt, wait, right-click save, rename. Next image, same loop. By the tenth one you're sick of it, and the thought of batching thirty cover images for a layout is unbearable.
 
-Describe what you want to the AI. It uses your already-logged-in Chrome to drive ChatGPT or Gemini, generates the images, and saves them to a local folder with consistent naming. No API key signup, no interruption to what you're doing — thirty images land on your desktop while you finish another paragraph.
+Describe what you want to the AI. It uses your already-logged-in Chrome to drive ChatGPT or Gemini, generates the images, and saves them to a local folder with consistent naming. No API key signup, no interruption to what you're doing — thirty images land on your desktop while you finish your next paragraph.
 
 **Uses**: [chatgpt-image-cli](./chatgpt-image-cli/) + [nanobanana-cli](./nanobanana-cli/)
 
@@ -89,7 +89,7 @@ Describe what you want to the AI. It uses your already-logged-in Chrome to drive
 1. Download chatgpt-image-cli or nanobanana-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
 2. Open Claude and send the sentence above
 
-Full recipe (中文): [recipes/batch-image-shiba-inu.md](./recipes/batch-image-shiba-inu.md)
+Full recipe (Chinese only): [recipes/batch-image-shiba-inu.md](./recipes/batch-image-shiba-inu.md)
 
 ---
 
@@ -99,7 +99,7 @@ Full recipe (中文): [recipes/batch-image-shiba-inu.md](./recipes/batch-image-s
 
 Want to understand an unfamiliar topic? The old way: Google it, click each result, read through, copy the key points, write up notes. A whole morning gone.
 
-Hand that loop to the AI. It runs the search, follows each result, pulls the body text. You can ask it to synthesize a summary, or keep the raw articles to read yourself. For research scoping, tracking what's new in a field, or gathering material for an article, this is the front door.
+Let the AI take that loop. It runs the search, follows each result, pulls the body text. You can ask it to synthesize a summary, or keep the raw articles to read yourself. For research scoping, tracking what's new in a field, or gathering material for an article, this is the front door.
 
 **Uses**: [google-cli](./google-cli/) + [baidu-cli](./baidu-cli/)
 
@@ -107,7 +107,7 @@ Hand that loop to the AI. It runs the search, follows each result, pulls the bod
 1. Download google-cli or baidu-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
 2. Open Claude and send the sentence above
 
-Full recipe (中文): [recipes/research-local-ai-models.md](./recipes/research-local-ai-models.md)
+Full recipe (Chinese only): [recipes/research-local-ai-models.md](./recipes/research-local-ai-models.md)
 
 ---
 
