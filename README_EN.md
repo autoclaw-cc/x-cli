@@ -7,7 +7,7 @@ English | [中文](./README.md)
 
 Tell an AI agent in one sentence what you keep doing on a webpage, and it'll turn that into a CLI tool. The generated CLI can be called by your agent any time, driving your real Chrome login session directly — no API, no token juggling.
 
-This repo collects several CLIs built exactly this way. They're installable and useful as-is, but they also serve as reference cases showing how AI agent + [kimi-webbridge](https://www.kimi.com/features/webbridge) turns a one-line request into a complete CLI. The "Build your own CLI" section below walks through the full flow.
+This repo collects several CLIs built exactly this way. They're installable and useful as-is, but they also serve as reference cases showing how AI agent + [kimi-webbridge](https://www.kimi.com/features/webbridge) turns a one-line request into a complete CLI.
 
 DEMO (a CLI being born):
 
@@ -15,55 +15,17 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
 ## Build your own CLI
 
-All the CLIs in this repo were produced automatically by AI agents using the [`agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) skill. Set your agent up with the toolchain below, then say "Build me a CLI for example.com" — that's it.
+All the CLIs in this repo were produced automatically by AI agents using the [`agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) skill. Install the skill, then say "Build me a CLI for example.com" to your agent — that's it.
 
-### Prerequisites
-
-To let the agent actually drive your browser, install [kimi-webbridge](https://www.kimi.com/features/webbridge). It has two parts:
-
-1. **Browser extension** — the agent's entry point for controlling the browser. Once installed, every click, input, and read is forwarded through it, and your existing Chrome login sessions get reused automatically.
-   - English: <https://www.kimi.com/features/webbridge>
-   - 中文：<https://www.kimi.com/zh-cn/features/webbridge>
-
-2. **Local skill** that teaches the agent how to use the extension above. Install:
-
-   ```bash
-   curl -fsSL https://cdn.kimi.com/webbridge/install.sh | bash
-   ```
-
-### Install the skill
-
-```bash
-npx skills add better-world-ai/agent-cli-creator
-```
-
-<details>
-<summary>No Node.js? Manual install</summary>
-
-Copy the contents of the [`better-world-ai/agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) repo into your agent's skills directory under an `agent-cli-creator/` subdirectory (for Claude Code that's `~/.claude/skills/agent-cli-creator/`). Not sure where it goes? Paste this README section to your agent — it'll figure it out.
-
-</details>
-
-Once installed, just say "Build me a CLI for example.com" in conversation to trigger it.
-
-### How to use
-
-1. Start kimi-webbridge and log into the target site in Chrome.
-2. Tell your agent, e.g.:
-   > "Build me a CLI for example.com. I want to pull the homepage feed and post comments."
-3. The agent asks a few questions first (which language, what the first 1–3 features are), then goes off to analyze the site, scaffold the project, and implement the commands — pausing at key checkpoints to confirm with you.
-4. You end up with a tool used like this:
-   ```bash
-   example-cli login-status
-   example-cli home --limit 10
-   example-cli post --content "hello"
-   ```
+Full prerequisites (kimi-webbridge), install commands, and walkthrough live in the [agent-cli-creator README](https://github.com/better-world-ai/agent-cli-creator/blob/main/README_EN.md).
 
 ## What you can do
 
 Five ready-made scenarios: travel planning, cross-platform rentals, gaokao admissions, AI image generation, and search/scrape — see [Scenarios_EN.md](./Scenarios_EN.md).
 
 ## Install prebuilt binaries
+
+> **Prerequisite**: the CLIs drive your local Chrome, so first install [kimi-webbridge](https://www.kimi.com/features/webbridge) (see [agent-cli-creator README → Prerequisites](https://github.com/better-world-ai/agent-cli-creator/blob/main/README_EN.md#prerequisites)).
 
 Grab the archive for your platform from the [Releases page](https://github.com/better-world-ai/x-cli/releases), extract it, and run.
 
