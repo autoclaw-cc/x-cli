@@ -63,16 +63,16 @@ kimi-webbridge daemon 必须运行：
 
 ```bash
 # 搜索
-anjuke-cli search --city shenzhen --keyword 南山 --limit 10
-anjuke-cli search --city shanghai --keyword 张江 --min-price 3000 --max-price 6000 --limit 10
+anjuke-cli search --city sz --keyword 南山 --limit 10
+anjuke-cli search --city sh --keyword 张江 --min-price 3000 --max-price 6000 --limit 10
 
 # 详情
-anjuke-cli detail --city shenzhen --id 123456789
+anjuke-cli detail --city sz --id 123456789
 ```
 
 | 参数 | 说明 |
 |------|------|
-| `--city` | 城市拼音（shenzhen, shanghai, beijing, guangzhou, chengdu, hangzhou 等） |
+| `--city` | 城市两字母代码（sz=深圳, bj=北京, sh=上海, gz=广州, hz=杭州, cd=成都, tj=天津, nj=南京, wh=武汉, cs=长沙, cq=重庆, xa=西安） |
 | `--keyword` | 区域/商圈/小区名 |
 | `--min-price` / `--max-price` | 月租范围 |
 | `--limit` | 返回数量（默认 20） |
@@ -122,8 +122,8 @@ rightmove-cli detail --url "https://www.rightmove.co.uk/properties/xxxxx"
 
 ```bash
 # 搜索
-idealista-cli search --country spain --city madrid-madrid --min-price 500 --max-price 1200 --limit 10
-idealista-cli search --country italy --city roma --min-rooms 2 --limit 10
+idealista-cli search --country spain --city madrid-madrid --limit 10
+idealista-cli search --country italy --city roma --limit 10
 idealista-cli search --country portugal --city lisboa --limit 10
 
 # 详情
@@ -133,10 +133,10 @@ idealista-cli detail --country spain --url "https://www.idealista.com/inmueble/x
 | 参数 | 说明 |
 |------|------|
 | `--country` | spain / italy / portugal |
-| `--city` | 城市 slug（spain: madrid-madrid, barcelona-barcelona, valencia, sevilla; italy: roma, milano, firenze; portugal: lisboa, porto） |
-| `--min-rooms` / `--max-rooms` | 房间数 |
-| `--min-price` / `--max-price` | 月租范围（欧元） |
+| `--city` | 城市 slug（spain: madrid-madrid, barcelona-barcelona, valencia-valencia, sevilla-sevilla; italy: roma, milano, firenze; portugal: lisboa, porto） |
 | `--limit` | 返回数量（默认 20） |
+
+> 价格/房间数过滤暂未实现（idealista 用 path-based 过滤，需要按 country 分别编码）。需要过滤先全量拉取后在调用方筛选。
 
 ### xiaohongshu-cli（辅助）
 
@@ -153,11 +153,11 @@ xiaohongshu-cli view <note_id> <xsec_token>
 ```bash
 # 1. 两个平台同时搜（对比房源和价格）
 58-cli search --city sz --keyword 南山 --min-price 3000 --max-price 5000 --limit 10
-anjuke-cli search --city shenzhen --keyword 南山 --min-price 3000 --max-price 5000 --limit 10
+anjuke-cli search --city sz --keyword 南山 --min-price 3000 --max-price 5000 --limit 10
 
 # 2. 看中的房源查详情
 58-cli detail --url "https://sz.58.com/zufang/xxxxx.shtml"
-anjuke-cli detail --city shenzhen --id 123456789
+anjuke-cli detail --city sz --id 123456789
 
 # 3. 搜避坑经验
 xiaohongshu-cli search "深圳南山租房避坑" --limit 5
@@ -184,7 +184,7 @@ rightmove-cli search --location London --min-beds 1 --max-price 1800 --limit 10
 rightmove-cli detail --url "https://www.rightmove.co.uk/properties/xxxxx"
 
 # 西班牙
-idealista-cli search --country spain --city barcelona-barcelona --max-price 1000 --limit 10
+idealista-cli search --country spain --city barcelona-barcelona --limit 10
 idealista-cli detail --country spain --url "https://www.idealista.com/inmueble/xxxxx/"
 ```
 

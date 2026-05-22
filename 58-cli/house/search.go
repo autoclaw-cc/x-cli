@@ -35,7 +35,6 @@ type SearchParams struct {
 	Keyword  string
 	MinPrice int
 	MaxPrice int
-	Rooms    int
 	Limit    int
 	Page     int
 }

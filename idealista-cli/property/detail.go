@@ -30,7 +30,7 @@ type PropertyDetail struct {
 	URL          string   `json:"url"`
 }
 
-func Detail(client *browser.Client, url string) (*PropertyDetail, error) {
+func GetDetail(client *browser.Client, url string) (*PropertyDetail, error) {
 	if err := client.NavigateNewTab(url); err != nil {
 		return nil, fmt.Errorf("navigate: %w", err)
 	}
@@ -43,14 +43,7 @@ func Detail(client *browser.Client, url string) (*PropertyDetail, error) {
 		const bodyText = document.body ? document.body.innerText : '';
 		if (curURL.includes('captcha') || curURL.includes('robot') ||
 		    (bodyText.length < 500 && (bodyText.toLowerCase().includes('captcha') || bodyText.toLowerCase().includes('robot')))) {
-			return JSON.stringify({
-				id: '', platform: 'idealista', title: 'CAPTCHA_DETECTED',
-				address: '', price_monthly: 0, rooms: 0, bathrooms: 0,
-				area_sqm: 0, floor: '', has_lift: false, furnished: '',
-				deposit: '', agent: '', agent_phone: '', features: [],
-				description: 'Page blocked by CAPTCHA. Please solve it in the browser and retry.',
-				energy_rating: '', images: [], url: '%s'
-			});
+			return JSON.stringify({error: "captcha_detected"});
 		}
 
 		// --- ID from URL path ---
@@ -238,11 +231,22 @@ func Detail(client *browser.Client, url string) (*PropertyDetail, error) {
 			images: images,
 			url: '%s'
 		});
-	})()`, url, url)
+	})()`, url)
 
 	raw, err := client.EvaluateJSON(js)
 	if err != nil {
 		return nil, fmt.Errorf("evaluate: %w", err)
+	}
+
+	var check struct {
+		Error string `json:"error"`
+	}
+	json.Unmarshal(raw, &check)
+	if check.Error == "captcha_detected" {
+		return nil, fmt.Errorf("Idealista CAPTCHA detected. Please complete the verification in Chrome, then retry.")
+	}
+	if check.Error != "" {
+		return nil, fmt.Errorf("page issue: %s", check.Error)
 	}
 
 	var detail PropertyDetail

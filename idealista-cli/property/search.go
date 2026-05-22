@@ -3,7 +3,6 @@ package property
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"idealista-cli/browser"
@@ -34,14 +33,10 @@ type SearchResult struct {
 }
 
 type SearchParams struct {
-	Country  string
-	City     string
-	MinPrice int
-	MaxPrice int
-	MinRooms int
-	MaxRooms int
-	Limit    int
-	Page     int
+	Country string
+	City    string
+	Limit   int
+	Page    int
 }
 
 var CountryDomains = map[string]string{
@@ -66,25 +61,8 @@ func Search(client *browser.Client, params SearchParams) (*SearchResult, error) 
 		searchURL = fmt.Sprintf("https://%s/alquiler-viviendas/%s/", domain, params.City)
 	}
 
-	// Add query-string filters
-	queryParts := []string{}
-	if params.MinPrice > 0 {
-		queryParts = append(queryParts, fmt.Sprintf("minPrice=%d", params.MinPrice))
-	}
-	if params.MaxPrice > 0 {
-		queryParts = append(queryParts, fmt.Sprintf("maxPrice=%d", params.MaxPrice))
-	}
-	if params.MinRooms > 0 {
-		queryParts = append(queryParts, fmt.Sprintf("minSize=%d", params.MinRooms))
-	}
-
-	// Add page via path segment (pagina-N.htm before query string)
 	if params.Page > 1 {
 		searchURL += fmt.Sprintf("pagina-%d.htm", params.Page)
-	}
-
-	if len(queryParts) > 0 {
-		searchURL += "?" + strings.Join(queryParts, "&")
 	}
 
 	if err := client.NavigateNewTab(searchURL); err != nil {
@@ -99,13 +77,7 @@ func Search(client *browser.Client, params SearchParams) (*SearchResult, error) 
 		const bodyText = document.body ? document.body.innerText : '';
 		if (curURL.includes('captcha') || curURL.includes('robot') ||
 		    (bodyText.length < 500 && (bodyText.toLowerCase().includes('captcha') || bodyText.toLowerCase().includes('robot')))) {
-			return JSON.stringify({
-				properties: [],
-				country: '%s',
-				city: '%s',
-				total_found: 'CAPTCHA_DETECTED',
-				page: %d
-			});
+			return JSON.stringify({error: "captcha_detected"});
 		}
 
 		const limit = %d;
@@ -201,21 +173,32 @@ func Search(client *browser.Client, params SearchParams) (*SearchResult, error) 
 
 		return JSON.stringify({
 			properties: properties,
-			country: '%s',
-			city: '%s',
-			total_found: totalText,
-			page: %d
+			total_found: totalText
 		});
-	})()`, params.Country, params.City, params.Page, params.Limit, params.Country, params.City, params.Page)
+	})()`, params.Limit)
 
 	raw, err := client.EvaluateJSON(js)
 	if err != nil {
 		return nil, fmt.Errorf("evaluate: %w", err)
 	}
 
+	var check struct {
+		Error string `json:"error"`
+	}
+	json.Unmarshal(raw, &check)
+	if check.Error == "captcha_detected" {
+		return nil, fmt.Errorf("Idealista CAPTCHA detected. Please complete the verification in Chrome, then retry.")
+	}
+	if check.Error != "" {
+		return nil, fmt.Errorf("page issue: %s", check.Error)
+	}
+
 	var result SearchResult
 	if err := json.Unmarshal(raw, &result); err != nil {
 		return nil, fmt.Errorf("parse result: %w", err)
 	}
+	result.Country = params.Country
+	result.City = params.City
+	result.Page = params.Page
 	return &result, nil
 }
