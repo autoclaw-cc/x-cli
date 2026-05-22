@@ -28,7 +28,7 @@ To let the agent actually drive your browser, install [kimi-webbridge](https://w
 2. **Local skill** that teaches the agent how to use the extension above. Install:
 
    ```bash
-   curl -fsSL https://kimi-web-img.moonshot.cn/webbridge/install.sh | bash
+   curl -fsSL https://cdn.kimi.com/webbridge/install.sh | bash
    ```
 
 ### Install the skill
