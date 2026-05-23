@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -19,24 +20,46 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// checkDaemon emits a structured error and exits if the kimi-webbridge daemon
+// or the Chrome extension isn't reachable. Keeps every command's failure modes
+// in the {ok:false, error:{code,message}} contract.
+func checkDaemon(client *browser.Client) {
+	st, err := client.Status()
+	if err != nil {
+		output.Error("daemon_unreachable", err.Error())
+		os.Exit(1)
+	}
+	if !st.Running {
+		output.Error("daemon_not_running", "kimi-webbridge daemon is not running (open the Kimi Desktop App)")
+		os.Exit(1)
+	}
+	if !st.ExtensionConnected {
+		output.Error("extension_not_connected", "Chrome WebBridge extension is not connected (see https://www.kimi.com/features/webbridge)")
+		os.Exit(1)
+	}
+}
+
 func init() {
 	loginStatusCmd := &cobra.Command{
 		Use:   "login-status",
 		Short: "Check if logged in to Boss直聘",
 		Run: func(cmd *cobra.Command, args []string) {
 			client := browser.NewClient("boss")
+			checkDaemon(client)
 			status, err := boss.CheckLogin(client)
 			if err != nil {
 				output.Error("login_check_error", err.Error())
 				os.Exit(1)
 			}
 			if !status.LoggedIn {
-				output.Error("not_logged_in", "Not logged in to Boss直聘. Please open Chrome, navigate to https://www.zhipin.com, and log in manually.")
+				output.Error("not_logged_in", boss.ErrNotLoggedIn.Error())
 				os.Exit(1)
 			}
 			output.Success(status)
 		},
 	}
+	loginStatusCmd.SilenceUsage = true
+	loginStatusCmd.SilenceErrors = true
 
 	searchJobsCmd := &cobra.Command{
 		Use:   "search-jobs",
@@ -59,9 +82,14 @@ func init() {
 			}
 
 			client := browser.NewClient("boss")
+			checkDaemon(client)
 			result, err := boss.SearchJobs(client, query, city, salary, experience, degree, scale, stage, jobType, page, limit)
 			if err != nil {
-				output.Error("search_error", err.Error())
+				if errors.Is(err, boss.ErrNotLoggedIn) {
+					output.Error("not_logged_in", err.Error())
+				} else {
+					output.Error("search_error", err.Error())
+				}
 				os.Exit(1)
 			}
 			output.Success(result)
@@ -77,6 +105,8 @@ func init() {
 	searchJobsCmd.Flags().String("job-type", "", "Job type (1901=全职, 1903=兼职)")
 	searchJobsCmd.Flags().Int("page", 1, "Page number (each page ~15 results)")
 	searchJobsCmd.Flags().Int("limit", 0, "Max jobs to return (0 = all)")
+	searchJobsCmd.SilenceUsage = true
+	searchJobsCmd.SilenceErrors = true
 
 	jobDetailCmd := &cobra.Command{
 		Use:   "job-detail",
@@ -89,15 +119,22 @@ func init() {
 			}
 
 			client := browser.NewClient("boss-detail")
+			checkDaemon(client)
 			detail, err := boss.GetJobDetail(client, jobID)
 			if err != nil {
-				output.Error("detail_error", err.Error())
+				if errors.Is(err, boss.ErrNotLoggedIn) {
+					output.Error("not_logged_in", err.Error())
+				} else {
+					output.Error("detail_error", err.Error())
+				}
 				os.Exit(1)
 			}
 			output.Success(detail)
 		},
 	}
 	jobDetailCmd.Flags().String("id", "", "Encrypted job ID (from search-jobs results)")
+	jobDetailCmd.SilenceUsage = true
+	jobDetailCmd.SilenceErrors = true
 
 	rootCmd.AddCommand(loginStatusCmd)
 	rootCmd.AddCommand(searchJobsCmd)

@@ -85,6 +85,11 @@ func SearchJobs(client *browser.Client, query, city, salary, experience, degree,
 	}
 
 	js := `(function(){
+		var avatar = document.querySelector(".user-nav .nav-figure img");
+		var loginBtn = document.querySelector(".btn-login, .header-login-btn");
+		if (!avatar || loginBtn) {
+			return JSON.stringify({error: "not_logged_in"});
+		}
 		var cards = document.querySelectorAll(".job-card-wrap");
 		var jobs = [];
 		for (var i = 0; i < cards.length; i++) {
@@ -123,8 +128,10 @@ func SearchJobs(client *browser.Client, query, city, salary, experience, degree,
 	var check struct {
 		Error string `json:"error"`
 	}
-	json.Unmarshal(raw, &check)
-	if check.Error != "" {
+	if err := json.Unmarshal(raw, &check); err == nil && check.Error != "" {
+		if check.Error == "not_logged_in" {
+			return nil, ErrNotLoggedIn
+		}
 		return nil, fmt.Errorf("page data not available: %s", check.Error)
 	}
 
