@@ -21,12 +21,7 @@ func (s *SemanticScholar) Search(ctx context.Context, query string, limit int) (
 		"https://api.semanticscholar.org/graph/v1/paper/search?query=%s&limit=%d&fields=title,authors,abstract,year,externalIds,citationCount,referenceCount,url,openAccessPdf,venue,publicationVenue",
 		url.QueryEscape(query), limit)
 
-	req, err := newRequest(ctx, "GET", u)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := defaultHTTPClient.Do(req)
+	resp, err := s2GET(ctx, u)
 	if err != nil {
 		return nil, fmt.Errorf("semantic scholar request: %w", err)
 	}

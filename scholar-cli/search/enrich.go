@@ -99,68 +99,65 @@ func EnrichByDOI(ctx context.Context, doi string) (*paper.Paper, error) {
 		"https://api.semanticscholar.org/graph/v1/paper/%s?fields=title,authors,abstract,year,citationCount,referenceCount,openAccessPdf,externalIds,venue",
 		url.PathEscape(s2Path))
 
-	req2, err := newRequest(ctx, "GET", s2URL)
+	resp2, err := s2GET(ctx, s2URL)
 	if err == nil {
-		resp2, err := defaultHTTPClient.Do(req2)
-		if err == nil {
-			defer resp2.Body.Close()
-			var s2Data struct {
-				PaperID    string `json:"paperId"`
-				Title      string `json:"title"`
-				Abstract   string `json:"abstract"`
-				Year       int    `json:"year"`
-				Venue      string `json:"venue"`
-				CitationCount  int `json:"citationCount"`
-				ReferenceCount int `json:"referenceCount"`
-				Authors []struct {
-					Name string `json:"name"`
-				} `json:"authors"`
-				ExternalIds struct {
-					ArXivID string `json:"ArXiv"`
-				} `json:"externalIds"`
-				OpenAccessPdf *struct {
-					URL string `json:"url"`
-				} `json:"openAccessPdf"`
+		defer resp2.Body.Close()
+		var s2Data struct {
+			PaperID    string `json:"paperId"`
+			Title      string `json:"title"`
+			Abstract   string `json:"abstract"`
+			Year       int    `json:"year"`
+			Venue      string `json:"venue"`
+			CitationCount  int `json:"citationCount"`
+			ReferenceCount int `json:"referenceCount"`
+			Authors []struct {
+				Name string `json:"name"`
+			} `json:"authors"`
+			ExternalIds struct {
+				ArXivID string `json:"ArXiv"`
+			} `json:"externalIds"`
+			OpenAccessPdf *struct {
+				URL string `json:"url"`
+			} `json:"openAccessPdf"`
+		}
+		if err := json.NewDecoder(resp2.Body).Decode(&s2Data); err == nil {
+			// S2 fills primary fields when CrossRef returned nothing (common
+			// for arXiv-only DOIs not registered in CrossRef metadata).
+			if p.Title == "" {
+				p.Title = s2Data.Title
 			}
-			if err := json.NewDecoder(resp2.Body).Decode(&s2Data); err == nil {
-				// S2 fills primary fields when CrossRef returned nothing (common
-				// for arXiv-only DOIs not registered in CrossRef metadata).
-				if p.Title == "" {
-					p.Title = s2Data.Title
-				}
-				if p.Year == 0 {
-					p.Year = s2Data.Year
-				}
-				if p.Venue == "" {
-					p.Venue = s2Data.Venue
-				}
-				if len(p.Authors) == 0 {
-					for _, a := range s2Data.Authors {
-						if a.Name != "" {
-							p.Authors = append(p.Authors, paper.Author{Name: a.Name})
-						}
+			if p.Year == 0 {
+				p.Year = s2Data.Year
+			}
+			if p.Venue == "" {
+				p.Venue = s2Data.Venue
+			}
+			if len(p.Authors) == 0 {
+				for _, a := range s2Data.Authors {
+					if a.Name != "" {
+						p.Authors = append(p.Authors, paper.Author{Name: a.Name})
 					}
 				}
-				if p.Abstract == "" {
-					p.Abstract = s2Data.Abstract
-				}
-				if p.Citations == 0 {
-					p.Citations = s2Data.CitationCount
-				}
-				if p.References == 0 {
-					p.References = s2Data.ReferenceCount
-				}
-				if s2Data.OpenAccessPdf != nil {
-					p.PDFURL = s2Data.OpenAccessPdf.URL
-					p.OpenAccess = true
-				}
-				if s2Data.PaperID != "" {
-					p.IDs["s2_id"] = s2Data.PaperID
-					p.URLs["semantic_scholar"] = "https://www.semanticscholar.org/paper/" + s2Data.PaperID
-				}
-				if s2Data.ExternalIds.ArXivID != "" {
-					p.IDs["arxiv_id"] = s2Data.ExternalIds.ArXivID
-				}
+			}
+			if p.Abstract == "" {
+				p.Abstract = s2Data.Abstract
+			}
+			if p.Citations == 0 {
+				p.Citations = s2Data.CitationCount
+			}
+			if p.References == 0 {
+				p.References = s2Data.ReferenceCount
+			}
+			if s2Data.OpenAccessPdf != nil {
+				p.PDFURL = s2Data.OpenAccessPdf.URL
+				p.OpenAccess = true
+			}
+			if s2Data.PaperID != "" {
+				p.IDs["s2_id"] = s2Data.PaperID
+				p.URLs["semantic_scholar"] = "https://www.semanticscholar.org/paper/" + s2Data.PaperID
+			}
+			if s2Data.ExternalIds.ArXivID != "" {
+				p.IDs["arxiv_id"] = s2Data.ExternalIds.ArXivID
 			}
 		}
 	}

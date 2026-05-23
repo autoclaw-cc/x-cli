@@ -43,6 +43,8 @@ or on failure (non-zero exit):
 
 `search-en` searches all 7 HTTP API sources in parallel by default. Use `--sources` to select specific ones.
 
+> **Note on Semantic Scholar:** S2's free anonymous tier shares a global rate-limit pool, so an occasional `count: 0` from `semantic` in the `sources` summary is normal — it doesn't mean the query failed. The other 6 sources keep working, and S2 calls auto-retry once on 429 to ride out transient saturation.
+
 ## Prerequisites
 
 1. **Go 1.25+** for building.
