@@ -34,6 +34,11 @@ func GetJobDetail(client *browser.Client, jobID string) (*JobDetail, error) {
 	time.Sleep(3 * time.Second)
 
 	js := `(function(){
+		var avatar = document.querySelector(".user-nav .nav-figure img");
+		var loginBtn = document.querySelector(".btn-login, .header-login-btn");
+		if (!avatar || loginBtn) {
+			return JSON.stringify({error: "not_logged_in"});
+		}
 		var result = {};
 
 		// Get basic info from global _jobInfo
@@ -79,7 +84,7 @@ func GetJobDetail(client *browser.Client, jobID string) (*JobDetail, error) {
 			for (var i = 0; i < parts.length; i++) {
 				var p = parts[i].trim();
 				if (!p) continue;
-				if (/\d+-\d+年|年以[上内]|经验不限|在校|应届/.test(p)) {
+				if (/\d+-\d+年|年以[上内]|经验不限|在校|应届|实习/.test(p)) {
 					result.experience = p;
 				} else if (/专|本科|硕士|博士|高中|中技|初中|学历/.test(p)) {
 					result.degree = p;
@@ -124,6 +129,13 @@ func GetJobDetail(client *browser.Client, jobID string) (*JobDetail, error) {
 	raw, err := client.EvaluateJSON(js)
 	if err != nil {
 		return nil, fmt.Errorf("evaluate: %w", err)
+	}
+
+	var check struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &check); err == nil && check.Error == "not_logged_in" {
+		return nil, ErrNotLoggedIn
 	}
 
 	var detail JobDetail
