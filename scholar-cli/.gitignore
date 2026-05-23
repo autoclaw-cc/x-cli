@@ -1,0 +1,4 @@
+/scholar-cli
+*.exe
+*.test
+*.out
