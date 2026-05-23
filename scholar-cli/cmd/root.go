@@ -24,6 +24,26 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// checkDaemon emits a structured error and exits if the kimi-webbridge daemon
+// or the Chrome extension isn't reachable. Used by the WebBridge-backed
+// subcommands (search-google, search-cnki, search-wos, login-status) so their
+// failure modes stay inside the {ok:false, error:{code,message}} contract.
+func checkDaemon(client *browser.Client) {
+	st, err := client.Status()
+	if err != nil {
+		output.Error("daemon_unreachable", err.Error())
+		os.Exit(1)
+	}
+	if !st.Running {
+		output.Error("daemon_not_running", "kimi-webbridge daemon is not running (open the Kimi Desktop App)")
+		os.Exit(1)
+	}
+	if !st.ExtensionConnected {
+		output.Error("extension_not_connected", "Chrome WebBridge extension is not connected (see https://www.kimi.com/features/webbridge)")
+		os.Exit(1)
+	}
+}
+
 func init() {
 	searchEnCmd := &cobra.Command{
 		Use:   "search-en",
@@ -90,6 +110,7 @@ func init() {
 			}
 
 			client := browser.NewClient("scholar-google")
+			checkDaemon(client)
 			src := search.NewGoogleScholar(client)
 			papers, err := src.Search(cmd.Context(), query, limit)
 			if err != nil {
@@ -119,6 +140,7 @@ func init() {
 			}
 
 			client := browser.NewClient("scholar-cnki")
+			checkDaemon(client)
 			src := search.NewCNKI(client)
 			papers, err := src.Search(cmd.Context(), query, limit)
 			if err != nil {
@@ -206,6 +228,7 @@ func init() {
 			}
 
 			client := browser.NewClient("scholar-wos")
+			checkDaemon(client)
 			src := search.NewWoS(client)
 			papers, err := src.Search(cmd.Context(), query, limit)
 			if err != nil {
@@ -231,6 +254,7 @@ func init() {
 			switch platform {
 			case "wos":
 				client := browser.NewClient("scholar-wos-check")
+				checkDaemon(client)
 				ok, err := search.CheckWoSLogin(client)
 				if err != nil {
 					output.Error("check_error", err.Error())
@@ -287,14 +311,17 @@ func init() {
 	downloadCmd.Flags().String("doi", "", "DOI of paper to download")
 	downloadCmd.Flags().String("url", "", "Direct PDF URL to download")
 	downloadCmd.Flags().String("output-dir", ".", "Directory to save PDF")
-	downloadCmd.Flags().String("scihub", "", "Sci-Hub domain (default: sci-hub.se)")
+	downloadCmd.Flags().String("scihub", "", "Sci-Hub domain to use as last-resort fallback (off by default; pass e.g. 'sci-hub.se' to enable, only where legal)")
 
-	rootCmd.AddCommand(searchEnCmd)
-	rootCmd.AddCommand(searchGoogleCmd)
-	rootCmd.AddCommand(searchCnkiCmd)
-	rootCmd.AddCommand(searchWosCmd)
-	rootCmd.AddCommand(detailCmd)
-	rootCmd.AddCommand(exportCmd)
-	rootCmd.AddCommand(downloadCmd)
-	rootCmd.AddCommand(loginStatusCmd)
+	subcommands := []*cobra.Command{
+		searchEnCmd, searchGoogleCmd, searchCnkiCmd, searchWosCmd,
+		detailCmd, exportCmd, downloadCmd, loginStatusCmd,
+	}
+	for _, c := range subcommands {
+		// Keep error output in the JSON contract on stdout; don't let cobra
+		// dump usage text to stderr on flag-validation failures.
+		c.SilenceUsage = true
+		c.SilenceErrors = true
+		rootCmd.AddCommand(c)
+	}
 }

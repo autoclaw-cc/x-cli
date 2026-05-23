@@ -52,8 +52,13 @@ func (p *Paper) BibTeXType() string {
 }
 
 func (p *Paper) ToBibTeX() string {
+	return p.toBibTeXWithKey(p.BibTeXKey())
+}
+
+// toBibTeXWithKey is the internal renderer. ExportBibTeX calls it directly so
+// it can pass a collision-deduplicated key without ToBibTeX recomputing one.
+func (p *Paper) toBibTeXWithKey(key string) string {
 	entryType := p.BibTeXType()
-	key := p.BibTeXKey()
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "@%s{%s,\n", entryType, key)
@@ -124,11 +129,23 @@ func ExportBibTeX(papers []Paper) string {
 	seen := make(map[string]bool)
 	for i := range papers {
 		key := papers[i].BibTeXKey()
+		// Disambiguate duplicates. The suffix loop guarantees we don't collide
+		// again even when the same key recurs more than 26 times in one export.
 		if seen[key] {
-			key = fmt.Sprintf("%s_%c", key, rune('a'+i%26))
+			base := key
+			for suffix := 0; ; suffix++ {
+				candidate := fmt.Sprintf("%s_%c", base, rune('a'+suffix%26))
+				if suffix >= 26 {
+					candidate = fmt.Sprintf("%s_%d", base, suffix)
+				}
+				if !seen[candidate] {
+					key = candidate
+					break
+				}
+			}
 		}
 		seen[key] = true
-		b.WriteString(papers[i].ToBibTeX())
+		b.WriteString(papers[i].toBibTeXWithKey(key))
 		b.WriteString("\n")
 	}
 	return b.String()

@@ -20,8 +20,8 @@ func (o *OpenAlex) Search(ctx context.Context, query string, limit int) ([]paper
 	if limit <= 0 {
 		limit = 10
 	}
-	u := fmt.Sprintf("https://api.openalex.org/works?search=%s&per_page=%d&mailto=scholar-cli@example.com",
-		url.QueryEscape(query), limit)
+	u := fmt.Sprintf("https://api.openalex.org/works?search=%s&per_page=%d&mailto=%s",
+		url.QueryEscape(query), limit, url.QueryEscape(ContactEmail()))
 
 	req, err := newRequest(ctx, "GET", u)
 	if err != nil {

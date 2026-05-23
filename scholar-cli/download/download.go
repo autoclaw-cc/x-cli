@@ -27,6 +27,16 @@ var httpClient = &http.Client{
 
 const userAgent = "scholar-cli/1.0"
 
+// contactEmail returns the email to send to polite-pool APIs (Unpaywall,
+// CrossRef, NCBI). Set SCHOLAR_CLI_EMAIL to your own address. Defaults to
+// the RFC-reserved example.com so we never accidentally use a real one.
+func contactEmail() string {
+	if e := os.Getenv("SCHOLAR_CLI_EMAIL"); e != "" {
+		return e
+	}
+	return "scholar-cli@example.com"
+}
+
 type DownloadResult struct {
 	DOI      string `json:"doi"`
 	Title    string `json:"title"`
@@ -38,7 +48,9 @@ type DownloadResult struct {
 // Download tries multiple channels in order:
 // 1. Direct pdf_url from search results (open access)
 // 2. Unpaywall API (legal OA copies)
-// 3. Sci-Hub (configurable domains)
+// 3. Sci-Hub (only when scihubDomain is explicitly set — never by default,
+//    since Sci-Hub is under court injunctions in several jurisdictions and
+//    users must opt in consciously)
 func Download(ctx context.Context, p *paper.Paper, outputDir string, scihubDomain string) (*DownloadResult, error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
@@ -88,8 +100,8 @@ func Download(ctx context.Context, p *paper.Paper, outputDir string, scihubDomai
 	}
 
 	// Channel 2: Unpaywall
-	unpURL := fmt.Sprintf("https://api.unpaywall.org/v2/%s?email=scholar.cli.user@gmail.com",
-		url.PathEscape(p.DOI))
+	unpURL := fmt.Sprintf("https://api.unpaywall.org/v2/%s?email=%s",
+		url.PathEscape(p.DOI), url.QueryEscape(contactEmail()))
 	if pdfURL, err := getUnpaywallURL(ctx, unpURL); err == nil && pdfURL != "" {
 		size, err := downloadFile(ctx, pdfURL, destPath)
 		if err == nil && size > 1024 {
@@ -103,22 +115,22 @@ func Download(ctx context.Context, p *paper.Paper, outputDir string, scihubDomai
 		}
 	}
 
-	// Channel 3: Sci-Hub
-	if scihubDomain == "" {
-		scihubDomain = "sci-hub.se"
-	}
-	scihubURL := fmt.Sprintf("https://%s/%s", scihubDomain, p.DOI)
-	pdfURL, err := resolveSciHubPDF(ctx, scihubURL)
-	if err == nil && pdfURL != "" {
-		size, err := downloadFile(ctx, pdfURL, destPath)
-		if err == nil && size > 1024 {
-			return &DownloadResult{
-				DOI:      p.DOI,
-				Title:    p.Title,
-				FilePath: destPath,
-				Source:   "scihub",
-				Size:     size,
-			}, nil
+	// Channel 3: Sci-Hub — opt-in only. Skip unless the caller passed a
+	// domain via --scihub; never default to sci-hub.se on the user's behalf.
+	if scihubDomain != "" {
+		scihubURL := fmt.Sprintf("https://%s/%s", scihubDomain, p.DOI)
+		pdfURL, err := resolveSciHubPDF(ctx, scihubURL)
+		if err == nil && pdfURL != "" {
+			size, err := downloadFile(ctx, pdfURL, destPath)
+			if err == nil && size > 1024 {
+				return &DownloadResult{
+					DOI:      p.DOI,
+					Title:    p.Title,
+					FilePath: destPath,
+					Source:   "scihub",
+					Size:     size,
+				}, nil
+			}
 		}
 	}
 
