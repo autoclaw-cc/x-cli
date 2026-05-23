@@ -1,5 +1,7 @@
 # Recipes
 
+[English](./README_EN.md) | 中文
+
 完整的「复制粘贴就能用」的脚本集合。每一份对应 [主 README](../README.md#现成的-5-个场景) 里的一个场景，给出可直接发给 Claude 的提示词、前置步骤和预期产出。
 
 ## 索引

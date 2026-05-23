@@ -32,7 +32,7 @@ You can be more specific too: "May 1st, Shanghai to Chiang Mai round-trip, budge
 2. `npx skills add better-world-ai/x-cli --skill travel-planning`
 3. Open Claude and send the sentence above
 
-Full recipe (Chinese only): [recipes/plan-kyoto-trip.md](./recipes/plan-kyoto-trip.md)
+Full recipe: [recipes/plan-kyoto-trip_EN.md](./recipes/plan-kyoto-trip_EN.md)
 
 ---
 
@@ -52,7 +52,7 @@ Tell the AI your budget, layout, and commute distance once. It queries five plat
 3. `npx skills add better-world-ai/x-cli --skill rental-assistant`
 4. Open Claude and send the sentence above
 
-Full recipe (Chinese only): [recipes/find-shanghai-rental.md](./recipes/find-shanghai-rental.md)
+Full recipe: [recipes/find-shanghai-rental_EN.md](./recipes/find-shanghai-rental_EN.md)
 
 ---
 
@@ -71,7 +71,7 @@ Ask the AI one question. It pulls official score lines, three years of admission
 2. `npx skills add better-world-ai/x-cli --skill gaokao-assistant`
 3. Open Claude and send the sentence above
 
-Full recipe (Chinese only): [recipes/gaokao-jiangsu-211.md](./recipes/gaokao-jiangsu-211.md)
+Full recipe: [recipes/gaokao-jiangsu-211_EN.md](./recipes/gaokao-jiangsu-211_EN.md)
 
 ---
 
@@ -89,7 +89,7 @@ Describe what you want to the AI. It uses your already-logged-in Chrome to drive
 1. Download chatgpt-image-cli or nanobanana-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
 2. Open Claude and send the sentence above
 
-Full recipe (Chinese only): [recipes/batch-image-shiba-inu.md](./recipes/batch-image-shiba-inu.md)
+Full recipe: [recipes/batch-image-shiba-inu_EN.md](./recipes/batch-image-shiba-inu_EN.md)
 
 ---
 
@@ -107,7 +107,7 @@ Let the AI take that loop. It runs the search, follows each result, pulls the bo
 1. Download google-cli or baidu-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
 2. Open Claude and send the sentence above
 
-Full recipe (Chinese only): [recipes/research-local-ai-models.md](./recipes/research-local-ai-models.md)
+Full recipe: [recipes/research-local-ai-models_EN.md](./recipes/research-local-ai-models_EN.md)
 
 ---
 
