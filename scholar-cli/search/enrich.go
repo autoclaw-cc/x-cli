@@ -17,8 +17,8 @@ func EnrichByDOI(ctx context.Context, doi string) (*paper.Paper, error) {
 	}
 
 	// Fetch from CrossRef
-	crURL := fmt.Sprintf("https://api.crossref.org/works/%s?mailto=scholar-cli@example.com",
-		url.PathEscape(doi))
+	crURL := fmt.Sprintf("https://api.crossref.org/works/%s?mailto=%s",
+		url.PathEscape(doi), url.QueryEscape(ContactEmail()))
 
 	req, err := newRequest(ctx, "GET", crURL)
 	if err != nil {
@@ -88,10 +88,16 @@ func EnrichByDOI(ctx context.Context, doi string) (*paper.Paper, error) {
 		}
 	}
 
-	// Enrich from Semantic Scholar
+	// Enrich from Semantic Scholar.
+	// S2 keys arXiv DOIs under `arXiv:<id>`, not `DOI:10.48550/arXiv.<id>` —
+	// the latter often 404s even when the paper is in S2.
+	s2Path := "DOI:" + doi
+	if strings.HasPrefix(strings.ToLower(doi), "10.48550/arxiv.") {
+		s2Path = "arXiv:" + doi[len("10.48550/arXiv."):]
+	}
 	s2URL := fmt.Sprintf(
-		"https://api.semanticscholar.org/graph/v1/paper/DOI:%s?fields=title,authors,abstract,year,citationCount,referenceCount,openAccessPdf,externalIds,venue",
-		url.PathEscape(doi))
+		"https://api.semanticscholar.org/graph/v1/paper/%s?fields=title,authors,abstract,year,citationCount,referenceCount,openAccessPdf,externalIds,venue",
+		url.PathEscape(s2Path))
 
 	req2, err := newRequest(ctx, "GET", s2URL)
 	if err == nil {
@@ -106,6 +112,9 @@ func EnrichByDOI(ctx context.Context, doi string) (*paper.Paper, error) {
 				Venue      string `json:"venue"`
 				CitationCount  int `json:"citationCount"`
 				ReferenceCount int `json:"referenceCount"`
+				Authors []struct {
+					Name string `json:"name"`
+				} `json:"authors"`
 				ExternalIds struct {
 					ArXivID string `json:"ArXiv"`
 				} `json:"externalIds"`
@@ -114,6 +123,24 @@ func EnrichByDOI(ctx context.Context, doi string) (*paper.Paper, error) {
 				} `json:"openAccessPdf"`
 			}
 			if err := json.NewDecoder(resp2.Body).Decode(&s2Data); err == nil {
+				// S2 fills primary fields when CrossRef returned nothing (common
+				// for arXiv-only DOIs not registered in CrossRef metadata).
+				if p.Title == "" {
+					p.Title = s2Data.Title
+				}
+				if p.Year == 0 {
+					p.Year = s2Data.Year
+				}
+				if p.Venue == "" {
+					p.Venue = s2Data.Venue
+				}
+				if len(p.Authors) == 0 {
+					for _, a := range s2Data.Authors {
+						if a.Name != "" {
+							p.Authors = append(p.Authors, paper.Author{Name: a.Name})
+						}
+					}
+				}
 				if p.Abstract == "" {
 					p.Abstract = s2Data.Abstract
 				}

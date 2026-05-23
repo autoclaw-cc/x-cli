@@ -24,8 +24,8 @@ func (p *PubMed) Search(ctx context.Context, query string, limit int) ([]paper.P
 
 	// Step 1: search for IDs (tool and email params required for NCBI polite access)
 	searchURL := fmt.Sprintf(
-		"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&retmax=%d&retmode=json&tool=scholar-cli&email=scholar-cli@example.com",
-		url.QueryEscape(query), limit)
+		"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s&retmax=%d&retmode=json&tool=scholar-cli&email=%s",
+		url.QueryEscape(query), limit, url.QueryEscape(ContactEmail()))
 
 	req, err := newRequest(ctx, "GET", searchURL)
 	if err != nil {
@@ -62,8 +62,8 @@ func (p *PubMed) Search(ctx context.Context, query string, limit int) ([]paper.P
 
 	// Step 2: fetch details
 	fetchURL := fmt.Sprintf(
-		"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml&tool=scholar-cli&email=scholar-cli@example.com",
-		strings.Join(ids, ","))
+		"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=%s&retmode=xml&tool=scholar-cli&email=%s",
+		strings.Join(ids, ","), url.QueryEscape(ContactEmail()))
 
 	req2, err := newRequest(ctx, "GET", fetchURL)
 	if err != nil {

@@ -79,7 +79,17 @@ go build -o scholar-cli .
 
 ## Download channels
 
-PDF download tries sources in order: arXiv direct → open access pdf_url → Unpaywall API → Sci-Hub.
+PDF download tries sources in order: arXiv direct → open access pdf_url → Unpaywall API.
+
+Sci-Hub is **disabled by default** — Sci-Hub access is under court injunctions in several jurisdictions. To opt in, pass `--scihub <domain>` (e.g. `--scihub sci-hub.se`); use only where legal in your jurisdiction. Without the flag, the cascade stops at Unpaywall.
+
+## Contact email for polite-pool APIs
+
+CrossRef, OpenAlex, NCBI E-utilities, and Unpaywall ask requesting clients to identify themselves with a contact email. By default scholar-cli sends `scholar-cli@example.com`. To use your own (recommended if you query heavily), set:
+
+```bash
+export SCHOLAR_CLI_EMAIL="you@example.org"
+```
 
 ## Layout
 
