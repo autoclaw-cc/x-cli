@@ -1,5 +1,7 @@
 # 批量生成柴犬主题图
 
+[English](./batch-image-shiba-inu_EN.md) | 中文
+
 ## 场景
 
 做 PPT 或公众号缺图，想要一组风格一致但场景不同的图。手动开 ChatGPT 或 Gemini 一张一张右键保存太烦，让 AI 批量跑完落到本地。
