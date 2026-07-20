@@ -119,8 +119,9 @@ sources, and delete. Playback/open flows were verified for audio and video.
 The CLI reports these as unavailable rather than pretending the operation
 succeeded. Pasted text, public URL, grounded chat, editable note creation/list,
 Studio capability discovery, typed artifact listing, and Studio generation are
-implemented. Live generation verification in this slice covered `data_table`
-and `mind_map`; the same `studio generate` entry point exposes the other visible
-Studio types, with long media outputs requiring larger timeouts. Fast/Deep
+implemented. Live generation verification in this slice covered `data_table`,
+`mind_map`, `report`, `quiz`, and `flashcards`; the same `studio generate`
+entry point exposes the other visible Studio types, with long media outputs
+requiring larger timeouts. Fast/Deep
 Research import, note-to-source, artifact playback/rename/delete,
 prompt-source inspection, and authorized downloads remain future slices.

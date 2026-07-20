@@ -286,20 +286,22 @@ func countStudioType(artifacts []StudioArtifact, kind string) int {
 }
 
 func submitStudioGenerationDialog(ctx context.Context, bridge Bridge, prompt string, deadline time.Time) (bool, error) {
-	softDeadline := time.Now().Add(8 * time.Second)
+	softDeadline := time.Now().Add(15 * time.Second)
 	if deadline.Before(softDeadline) {
 		softDeadline = deadline
 	}
 	promptFilled := false
-	const inspect = `(() => {const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);const fields=[...document.querySelectorAll('textarea,input[type=text],.ProseMirror,[contenteditable=true]')].filter(e=>visible(e)&&!e.disabled&&!e.readOnly&&!/查询框|query box/i.test(e.getAttribute('aria-label')||''));const field=fields[0];if(field)field.id='notebooklm-studio-prompt';const buttons=[...document.querySelectorAll('button')].filter(visible);const submit=buttons.find(b=>!b.disabled&&/^(生成|创建|Generate|Create|生成.*|Create.*|Generate.*)$/i.test((b.textContent||'').trim())&&!/取消|Cancel/i.test((b.textContent||'').trim()));if(submit)submit.id='notebooklm-studio-submit';const active=!!field||!!submit||[...document.querySelectorAll('[role=dialog],mat-dialog-container,.mat-mdc-dialog-container')].some(visible);return {active,hasPrompt:!!field,canSubmit:!!submit};})()`
+	optionSelected := false
+	const inspect = `(() => {const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);const fields=[...document.querySelectorAll('textarea,input[type=text],.ProseMirror,[contenteditable=true]')].filter(e=>visible(e)&&!e.disabled&&!e.readOnly&&!/查询框|query box/i.test(e.getAttribute('aria-label')||''));const field=fields[0];if(field)field.id='notebooklm-studio-prompt';const buttons=[...document.querySelectorAll('button')].filter(visible);const submit=buttons.find(b=>!b.disabled&&/^(生成|创建|Generate|Create|生成.*|Create.*|Generate.*)$/i.test((b.textContent||'').trim())&&!/取消|Cancel/i.test((b.textContent||'').trim()));if(submit)submit.id='notebooklm-studio-submit';const defaults=['简报文档','Briefing document','Briefing Doc','Briefing doc','学习指南','Study Guide','Study guide'];const option=buttons.find(b=>!b.disabled&&defaults.some(label=>((b.getAttribute('aria-label')||'')+'\n'+(b.textContent||'')).includes(label)));if(option)option.id='notebooklm-studio-default-option';const active=!!field||!!submit||!!option||[...document.querySelectorAll('[role=dialog],mat-dialog-container,.mat-mdc-dialog-container')].some(visible);return {active,hasPrompt:!!field,canSubmit:!!submit,hasDefaultOption:!!option};})()`
 	for {
 		if err := ctx.Err(); err != nil {
 			return false, err
 		}
 		var state struct {
-			Active    bool `json:"active"`
-			HasPrompt bool `json:"hasPrompt"`
-			CanSubmit bool `json:"canSubmit"`
+			Active           bool `json:"active"`
+			HasPrompt        bool `json:"hasPrompt"`
+			CanSubmit        bool `json:"canSubmit"`
+			HasDefaultOption bool `json:"hasDefaultOption"`
 		}
 		if err := bridge.EvaluateValue(inspect, &state); err == nil {
 			if strings.TrimSpace(prompt) != "" && state.HasPrompt && !promptFilled {
@@ -313,18 +315,29 @@ func submitStudioGenerationDialog(ctx context.Context, bridge Bridge, prompt str
 				}
 				promptFilled = true
 			}
+			if !state.CanSubmit && state.HasDefaultOption {
+				if err := bridge.Click("#notebooklm-studio-default-option"); err != nil {
+					return false, fmt.Errorf("select Studio default option: %w", err)
+				}
+				optionSelected = true
+				time.Sleep(250 * time.Millisecond)
+				continue
+			}
 			if state.CanSubmit {
 				if err := bridge.Click("#notebooklm-studio-submit"); err != nil {
 					return false, fmt.Errorf("submit Studio generation: %w", err)
 				}
 				return true, nil
 			}
+			if !state.Active && optionSelected {
+				return true, nil
+			}
 			if !state.Active && time.Now().After(softDeadline) {
-				return false, nil
+				return optionSelected, nil
 			}
 		}
 		if time.Now().After(softDeadline) {
-			return false, nil
+			return optionSelected, nil
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
