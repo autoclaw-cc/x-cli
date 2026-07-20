@@ -1,0 +1,22 @@
+package notebooklm
+
+import (
+	"context"
+	"reflect"
+	"testing"
+)
+
+func TestInspectStudioReturnsExactObservedTypes(t *testing.T) {
+	want := []string{"audio", "presentation", "video", "mind_map", "report", "flashcards", "quiz", "infographic", "data_table"}
+	b := &scriptedBridge{evals: []any{
+		map[string]any{"ok": true},
+		map[string]any{"labels": []string{"音频概览", "演示文稿", "视频概览", "思维导图", "报告", "闪卡", "测验", "信息图", "数据表格"}},
+	}}
+	got, err := InspectStudio(context.Background(), b, "https://notebooklm.google.com/notebook/7471c40e-b33c-4518-b952-3cd786a4e532")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got.Types, want) {
+		t.Fatalf("types = %#v, want %#v", got.Types, want)
+	}
+}
