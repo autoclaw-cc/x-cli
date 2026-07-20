@@ -42,11 +42,12 @@ account identity, or unrequested notebook metadata.
 | `source add-text --notebook ID --file PATH` | Add a local UTF-8 file as pasted text |
 | `source add-url --notebook ID --url URL` | Add a public website or YouTube URL source |
 | `chat ask --notebook ID --question QUESTION` | Return a grounded answer and citation count |
-| `note create --notebook ID --title TITLE --text TEXT` | Create and reopen-verify an editable note |
+| `note create --notebook ID --title TITLE --text TEXT` | Create an editable note and verify it appears in Studio |
 | `note create --notebook ID --title TITLE --file PATH` | Create an editable note from UTF-8 text |
 | `note list --notebook ID` | List note titles after the Studio library stabilizes |
 | `studio capabilities --notebook ID` | Discover visible Studio output types |
 | `studio list --notebook ID` | List typed artifacts, state, details, playback, and menu availability |
+| `studio generate --notebook ID --type TYPE [--prompt TEXT] [--wait started|ready]` | Generate a Studio artifact in an owned notebook |
 
 Run `notebooklm-cli <command> --help` for flags. All commands return one JSON
 envelope on stdout and use a non-zero exit status on error.
@@ -62,6 +63,8 @@ notebooklm-cli chat ask --notebook ID --question "Summarize the evidence with ci
 notebooklm-cli note create --notebook ID --title "Evidence summary" --file summary.md
 notebooklm-cli note list --notebook ID
 notebooklm-cli studio capabilities --notebook ID
+notebooklm-cli studio generate --notebook ID --type data_table --prompt "Build a compact comparison table."
+notebooklm-cli studio generate --notebook ID --type mind_map --prompt "Map the key evidence."
 notebooklm-cli studio list --notebook ID
 ```
 
@@ -76,3 +79,6 @@ by browsing the user's existing notebooks.
 - The Google Drive picker is cross-origin and is not automated.
 - Browser-level download routing and direct media downloads require additional
   browser authorization and are not exposed by this CLI.
+- `studio generate` supports the visible Studio type labels. `data_table` and
+  `mind_map` are live-verified in this slice; long media outputs should be run
+  with a larger `--timeout`.

@@ -390,7 +390,7 @@ func (a *app) studioCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
 	_ = command.MarkFlagRequired("notebook")
-	parent.AddCommand(command, a.studioListCommand())
+	parent.AddCommand(command, a.studioListCommand(), a.studioGenerateCommand())
 	return parent
 }
 
@@ -419,6 +419,47 @@ func (a *app) studioListCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
 	_ = command.MarkFlagRequired("notebook")
+	return command
+}
+
+func (a *app) studioGenerateCommand() *cobra.Command {
+	var notebookID, kind, prompt, waitMode string
+	command := &cobra.Command{
+		Use:   "generate",
+		Short: "Start a Studio output for an owned notebook",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			waitReady := false
+			switch waitMode {
+			case "started":
+				waitReady = false
+			case "ready":
+				waitReady = true
+			default:
+				return &commandError{code: "invalid_args", message: "wait must be started or ready"}
+			}
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.GenerateStudioArtifact(cmd.Context(), client, owned.URL, kind, prompt, waitReady, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&kind, "type", "", "Studio output type: audio, presentation, video, mind_map, report, flashcards, quiz, infographic, data_table")
+	command.Flags().StringVar(&prompt, "prompt", "", "optional prompt or topic when the Studio dialog exposes a text field")
+	command.Flags().StringVar(&waitMode, "wait", "started", "started or ready")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("type")
 	return command
 }
 

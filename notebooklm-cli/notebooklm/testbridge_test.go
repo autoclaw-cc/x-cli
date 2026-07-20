@@ -2,6 +2,7 @@ package notebooklm
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -10,6 +11,7 @@ type scriptedBridge struct {
 	calls     []string
 	evals     []any
 	evalIndex int
+	fillErr   error
 }
 
 func hasCallContaining(calls []string, want string) bool {
@@ -39,6 +41,11 @@ func (b *scriptedBridge) EvaluateValue(code string, dst any) error {
 	return json.Unmarshal(body, dst)
 }
 
+func (b *scriptedBridge) Click(selector string) error {
+	b.calls = append(b.calls, "click:"+selector)
+	return nil
+}
+
 func (b *scriptedBridge) MouseClick(selector string) error {
 	b.calls = append(b.calls, "mouse_click:"+selector)
 	return nil
@@ -51,8 +58,13 @@ func (b *scriptedBridge) KeyType(text string) error {
 
 func (b *scriptedBridge) Fill(selector, value string) error {
 	b.calls = append(b.calls, "fill:"+selector+":"+value)
+	if b.fillErr != nil {
+		return b.fillErr
+	}
 	return nil
 }
+
+var errScriptedFill = errors.New("fill failed")
 
 func (b *scriptedBridge) SendKeys(keys string) error {
 	b.calls = append(b.calls, "send_keys:"+keys)

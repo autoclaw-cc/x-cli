@@ -21,6 +21,11 @@ type NoteListResult struct {
 	Notes []NoteSummary `json:"notes"`
 }
 
+type NoteSourceResult struct {
+	Title       string `json:"title"`
+	SourceCount int    `json:"source_count"`
+}
+
 func CreateNote(ctx context.Context, bridge Bridge, notebookURL, title, body string, timeout time.Duration) (*NoteResult, error) {
 	if strings.TrimSpace(title) == "" {
 		return nil, fmt.Errorf("note title is empty")
@@ -37,7 +42,7 @@ func CreateNote(ctx context.Context, bridge Bridge, notebookURL, title, body str
 		return nil, err
 	}
 
-	const tagAdd = `(() => {const b=[...document.querySelectorAll('button')].find(e=>/添加笔记|Add note/i.test((e.textContent||'').trim()));if(!b)return {ok:false};b.id='notebooklm-add-note';return {ok:true};})()`
+	const tagAdd = `(() => {const b=[...document.querySelectorAll('button')].find(e=>/添加笔记|Add note/i.test((e.textContent||'').trim()));if(!b)return {ok:false};b.id='notebooklm-add-note';b.click();return {ok:true};})()`
 	var tagged struct {
 		OK bool `json:"ok"`
 	}
@@ -46,9 +51,6 @@ func CreateNote(ctx context.Context, bridge Bridge, notebookURL, title, body str
 			err = fmt.Errorf("add note control not found")
 		}
 		return nil, err
-	}
-	if err := bridge.MouseClick("#notebooklm-add-note"); err != nil {
-		return nil, fmt.Errorf("open note editor: %w", err)
 	}
 	if err := waitNoteEditor(ctx, bridge, deadline, "", ""); err != nil {
 		return nil, err
@@ -79,24 +81,6 @@ func CreateNote(ctx context.Context, bridge Bridge, notebookURL, title, body str
 	encodedTitleString := string(encodedTitle)
 	waitPersisted := fmt.Sprintf(`(() => {const notes=[...document.querySelectorAll('artifact-library-note')];const matches=notes.filter(e=>(e.querySelector('.artifact-title')?.textContent||'').trim()===%s);return {ready:notes.length>%d&&matches.length===1,noteCount:notes.length};})()`, encodedTitleString, baseline)
 	if err := waitNoteReady(ctx, bridge, waitPersisted, deadline, "timeout: note did not appear in Studio"); err != nil {
-		return nil, err
-	}
-
-	tagReopen := fmt.Sprintf(`(() => {const notes=[...document.querySelectorAll('artifact-library-note')];const e=notes.find(x=>(x.querySelector('.artifact-title')?.textContent||'').trim()===%s);const b=e?.querySelector('.artifact-item-button');if(!b)return {ok:false};b.id='notebooklm-reopen-note';return {ok:true};})()`, encodedTitleString)
-	tagged.OK = false
-	if err := bridge.EvaluateValue(tagReopen, &tagged); err != nil || !tagged.OK {
-		if err == nil {
-			err = fmt.Errorf("created note could not be reopened")
-		}
-		return nil, err
-	}
-	if err := bridge.MouseClick("#notebooklm-reopen-note"); err != nil {
-		return nil, fmt.Errorf("reopen note: %w", err)
-	}
-	if err := waitNoteEditor(ctx, bridge, deadline, title, body); err != nil {
-		return nil, fmt.Errorf("verify reopened note: %w", err)
-	}
-	if err := closeNoteEditor(bridge); err != nil {
 		return nil, err
 	}
 	return &NoteResult{Title: title, BodyCharacters: len([]rune(body))}, nil
@@ -149,8 +133,78 @@ func ListNotes(ctx context.Context, bridge Bridge, notebookURL string, timeout t
 	}
 }
 
+func ConvertNoteToSource(ctx context.Context, bridge Bridge, notebookURL, title string, timeout time.Duration) (*NoteSourceResult, error) {
+	if strings.TrimSpace(title) == "" {
+		return nil, fmt.Errorf("note title is empty")
+	}
+	if err := openOwnedNotebook(ctx, bridge, notebookURL, timeout); err != nil {
+		return nil, err
+	}
+	deadline := time.Now().Add(timeout)
+	baseline, err := openSourcesAndCount(ctx, bridge, deadline)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := openStudioNotes(ctx, bridge, "", deadline); err != nil {
+		return nil, err
+	}
+	encodedTitle, _ := json.Marshal(title)
+	tagNote := fmt.Sprintf(`(() => {const notes=[...document.querySelectorAll('artifact-library-note')];const matches=notes.filter(e=>(e.querySelector('.artifact-title')?.textContent||'').trim()===%s);const b=matches[0]?.querySelector('.artifact-item-button');if(matches.length!==1||!b)return {ok:false,matches:matches.length};b.id='notebooklm-convert-note-target';b.click();return {ok:true,matches:1};})()`, encodedTitle)
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		var state struct {
+			OK      bool `json:"ok"`
+			Matches int  `json:"matches"`
+		}
+		if err := bridge.EvaluateValue(tagNote, &state); err == nil {
+			if state.Matches > 1 {
+				return nil, fmt.Errorf("note title is not unique")
+			}
+			if state.OK {
+				break
+			}
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout: note was not found")
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	if err := waitNoteEditor(ctx, bridge, deadline, title, ""); err != nil {
+		return nil, err
+	}
+
+	const tagConvert = `(() => {const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);const b=[...document.querySelectorAll('button')].filter(visible).find(e=>/转换为来源|Convert to source/i.test((e.textContent||'').trim()));if(!b)return {ok:false};b.id='notebooklm-convert-note';return {ok:true};})()`
+	var convert struct {
+		OK bool `json:"ok"`
+	}
+	if err := bridge.EvaluateValue(tagConvert, &convert); err != nil || !convert.OK {
+		if err == nil {
+			err = fmt.Errorf("convert note control not found")
+		}
+		return nil, err
+	}
+	if err := bridge.MouseClick("#notebooklm-convert-note"); err != nil {
+		return nil, fmt.Errorf("convert note to source: %w", err)
+	}
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		sourceCount, err := openSourcesAndCount(ctx, bridge, deadline)
+		if err == nil && sourceCount > baseline {
+			return &NoteSourceResult{Title: title, SourceCount: sourceCount}, nil
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout: converted note did not become a source")
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
 func openStudioNotes(ctx context.Context, bridge Bridge, uniqueTitle string, deadline time.Time) (int, error) {
-	const tagStudio = `(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>(x.textContent||'').trim()==='Studio');if(!e)return {ok:false};e.id='notebooklm-notes-studio-tab';return {ok:true};})()`
+	const tagStudio = `(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>(x.textContent||'').trim()==='Studio');if(!e)return {ok:false};e.id='notebooklm-notes-studio-tab';e.click();return {ok:true};})()`
 	var tagged struct {
 		OK bool `json:"ok"`
 	}
@@ -160,11 +214,8 @@ func openStudioNotes(ctx context.Context, bridge Bridge, uniqueTitle string, dea
 		}
 		return 0, err
 	}
-	if err := bridge.MouseClick("#notebooklm-notes-studio-tab"); err != nil {
-		return 0, fmt.Errorf("open Studio: %w", err)
-	}
 	encodedTitle, _ := json.Marshal(uniqueTitle)
-	inspect := fmt.Sprintf(`(() => {const tab=document.querySelector('#notebooklm-notes-studio-tab');const notes=[...document.querySelectorAll('artifact-library-note')];const title=%s;return {ready:tab?.getAttribute('aria-selected')==='true'&&!![...document.querySelectorAll('button')].find(e=>/添加笔记|Add note/i.test((e.textContent||'').trim())),noteCount:notes.length,titleExists:!!title&&notes.some(e=>(e.querySelector('.artifact-title')?.textContent||'').trim()===title)};})()`, encodedTitle)
+	inspect := fmt.Sprintf(`(() => {const tab=document.querySelector('#notebooklm-notes-studio-tab');if(tab&&tab.getAttribute('aria-selected')!=='true'){tab.click();return {ready:false,noteCount:0,titleExists:false};}const notes=[...document.querySelectorAll('artifact-library-note')];const title=%s;return {ready:tab?.getAttribute('aria-selected')==='true'&&!![...document.querySelectorAll('button')].find(e=>/添加笔记|Add note/i.test((e.textContent||'').trim())),noteCount:notes.length,titleExists:!!title&&notes.some(e=>(e.querySelector('.artifact-title')?.textContent||'').trim()===title)};})()`, encodedTitle)
 	for {
 		if err := ctx.Err(); err != nil {
 			return 0, err
@@ -195,7 +246,7 @@ func waitNoteEditor(ctx context.Context, bridge Bridge, deadline time.Time, titl
 }
 
 func closeNoteEditor(bridge Bridge) error {
-	const tagClose = `(() => {const b=[...document.querySelectorAll('button')].find(e=>/关闭笔记|Close note/i.test(e.getAttribute('aria-label')||''));if(!b)return {ok:false};b.id='notebooklm-close-note';return {ok:true};})()`
+	const tagClose = `(() => {const b=[...document.querySelectorAll('button')].find(e=>/关闭笔记|Close note/i.test(e.getAttribute('aria-label')||''));if(!b)return {ok:false};b.id='notebooklm-close-note';b.click();return {ok:true};})()`
 	var tagged struct {
 		OK bool `json:"ok"`
 	}
@@ -204,9 +255,6 @@ func closeNoteEditor(bridge Bridge) error {
 			err = fmt.Errorf("close note control not found")
 		}
 		return err
-	}
-	if err := bridge.MouseClick("#notebooklm-close-note"); err != nil {
-		return fmt.Errorf("close note: %w", err)
 	}
 	return nil
 }

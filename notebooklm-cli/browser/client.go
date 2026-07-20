@@ -110,6 +110,11 @@ func (c *Client) EvaluateValue(code string, dst any) error {
 	return nil
 }
 
+func (c *Client) Click(selector string) error {
+	_, err := c.Call("click", map[string]any{"selector": selector})
+	return err
+}
+
 func (c *Client) MouseClick(selector string) error {
 	_, err := c.Call("mouse_click", map[string]any{"selector": selector})
 	return err

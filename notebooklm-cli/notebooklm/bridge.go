@@ -3,6 +3,7 @@ package notebooklm
 type Bridge interface {
 	Navigate(url string, newTab bool, groupTitle string) error
 	EvaluateValue(code string, dst any) error
+	Click(selector string) error
 	MouseClick(selector string) error
 	KeyType(text string) error
 	Fill(selector, value string) error

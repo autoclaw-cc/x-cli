@@ -129,3 +129,18 @@ func TestStudioListRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 		t.Fatalf("output = %s", out.String())
 	}
 }
+
+func TestStudioGenerateRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "generate", "--notebook", "unknown", "--type", "mind_map",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}

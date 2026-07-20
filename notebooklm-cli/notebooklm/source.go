@@ -98,23 +98,8 @@ func AddURLSource(ctx context.Context, bridge Bridge, notebookURL, rawURL string
 }
 
 func openSourcePicker(ctx context.Context, bridge Bridge, deadline time.Time) (int, error) {
-	const tagSources = `(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>/^(来源|Sources?)$/.test((x.textContent||'').trim()));if(!e)return {ok:false,sourceCount:0};e.id='notebooklm-sources-tab';const xs=[...document.querySelectorAll('input[type=checkbox][aria-label]')].filter(x=>!/(选择所有来源|Select all sources)/i.test(x.getAttribute('aria-label')||''));return {ok:true,sourceCount:xs.length};})()`
-	var tagged struct {
-		OK          bool `json:"ok"`
-		SourceCount int  `json:"sourceCount"`
-	}
-	if err := bridge.EvaluateValue(tagSources, &tagged); err != nil || !tagged.OK {
-		if err == nil {
-			err = fmt.Errorf("Sources tab not found")
-		}
-		return 0, err
-	}
-	baseline := tagged.SourceCount
-	if err := bridge.MouseClick("#notebooklm-sources-tab"); err != nil {
-		return 0, fmt.Errorf("open Sources: %w", err)
-	}
-	const sourcesReady = `(() => {const e=document.querySelector('#notebooklm-sources-tab');return {ready:e?.getAttribute('aria-selected')==='true'&&!!document.querySelector('button[aria-label="添加来源"],button[aria-label="Add source"]')};})()`
-	if err := waitSourceReady(ctx, bridge, sourcesReady, deadline); err != nil {
+	baseline, err := openSourcesAndCount(ctx, bridge, deadline)
+	if err != nil {
 		return 0, err
 	}
 	const tagAdd = `(() => {const b=document.querySelector('button[aria-label="添加来源"],button[aria-label="Add source"]');if(!b)return {ok:false};b.id='notebooklm-add-source';return {ok:true};})()`
@@ -126,6 +111,36 @@ func openSourcePicker(ctx context.Context, bridge Bridge, deadline time.Time) (i
 		return 0, err
 	}
 	return baseline, nil
+}
+
+func openSourcesAndCount(ctx context.Context, bridge Bridge, deadline time.Time) (int, error) {
+	const tagSources = `(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>/^(来源|Sources?)$/.test((x.textContent||'').trim()));if(!e)return {ok:false};e.id='notebooklm-sources-tab';e.click();return {ok:true};})()`
+	var tagged struct {
+		OK bool `json:"ok"`
+	}
+	if err := bridge.EvaluateValue(tagSources, &tagged); err != nil || !tagged.OK {
+		if err == nil {
+			err = fmt.Errorf("Sources tab not found")
+		}
+		return 0, err
+	}
+	const inspect = `(() => {const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);const tab=document.querySelector('#notebooklm-sources-tab');if(tab&&tab.getAttribute('aria-selected')!=='true'){tab.click();return {ready:false,sourceCount:0};}const loading=[...document.querySelectorAll('mat-spinner,mat-progress-spinner,[role=progressbar]')].some(visible);const xs=[...document.querySelectorAll('input[type=checkbox][aria-label]')].filter(e=>!/(选择所有来源|Select all sources)/i.test(e.getAttribute('aria-label')||''));return {ready:tab?.getAttribute('aria-selected')==='true'&&!!document.querySelector('button[aria-label="添加来源"],button[aria-label="Add source"]')&&!loading,sourceCount:xs.length};})()`
+	for {
+		if err := ctx.Err(); err != nil {
+			return 0, err
+		}
+		var state struct {
+			Ready       bool `json:"ready"`
+			SourceCount int  `json:"sourceCount"`
+		}
+		if err := bridge.EvaluateValue(inspect, &state); err == nil && state.Ready {
+			return state.SourceCount, nil
+		}
+		if time.Now().After(deadline) {
+			return 0, fmt.Errorf("timeout: Sources did not become ready")
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
 }
 
 func tagAndClickSourceControl(bridge Bridge, script, selector string) error {
