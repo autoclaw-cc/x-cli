@@ -3,6 +3,7 @@ package notebooklm
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -153,6 +154,96 @@ func TestWaitStudioArtifactReadyReturnsNewReadyArtifactAfterGenerating(t *testin
 	}
 	if got.Title != "New Video" || !got.Playable {
 		t.Fatalf("artifact = %#v", got)
+	}
+}
+
+func TestExportStudioArtifactOpensUniqueReadyArtifactAndExtractsBody(t *testing.T) {
+	b := &scriptedBridge{evals: []any{
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{
+			"ok": true,
+			"artifact": map[string]any{
+				"type": "report", "title": "CLI Report", "details": "Briefing Doc", "state": "ready",
+			},
+		},
+		map[string]any{
+			"ready": true,
+			"body":  "CLI Report\n\nExecutive summary",
+		},
+	}}
+
+	got, err := ExportStudioArtifact(context.Background(), b,
+		"https://notebooklm.google.com/notebook/7471c40e-b33c-4518-b952-3cd786a4e532",
+		"report", "CLI Report", 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Artifact.Type != "report" || got.Artifact.Title != "CLI Report" || got.Body != "CLI Report\n\nExecutive summary" {
+		t.Fatalf("export = %#v", got)
+	}
+	if got.BodyCharacters != len([]rune(got.Body)) {
+		t.Fatalf("body characters = %d, want %d", got.BodyCharacters, len([]rune(got.Body)))
+	}
+	if !hasCallContaining(b.calls, "ARTIFACT-LIBRARY-") || !hasCallContaining(b.calls, "artifact-stretched-button") {
+		t.Fatalf("export must use artifact library unique card activation: %#v", b.calls)
+	}
+	if !hasCallContaining(b.calls, "artifact-viewer") || !hasCallContaining(b.calls, "labs-tailwind-structural-element-view-v2") {
+		t.Fatalf("export must read structured artifact viewer content: %#v", b.calls)
+	}
+}
+
+func TestExportStudioArtifactPollsUntilArtifactListIsReady(t *testing.T) {
+	b := &scriptedBridge{evals: []any{
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{"ok": false, "matches": 0},
+		map[string]any{
+			"ok": true,
+			"artifact": map[string]any{
+				"type": "report", "title": "CLI Report", "details": "Briefing Doc", "state": "ready",
+			},
+		},
+		map[string]any{
+			"ready": true,
+			"body":  "CLI Report\n\nExecutive summary",
+		},
+	}}
+
+	got, err := ExportStudioArtifact(context.Background(), b,
+		"https://notebooklm.google.com/notebook/7471c40e-b33c-4518-b952-3cd786a4e532",
+		"report", "CLI Report", 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Artifact.Title != "CLI Report" {
+		t.Fatalf("export = %#v", got)
+	}
+}
+
+func TestNormalizeStudioBlocksDropsContainerDuplicate(t *testing.T) {
+	blocks := []string{
+		"CLI Report",
+		"属性详细描述主要用途专供文档示例使用，旨在提供直观的参考。许可要求在文档中使用此域名无需获取额外许可。操作限制严禁将此类域名应用于实际的生产运营或业务流程中。",
+		"属性",
+		"详细描述",
+		"主要用途",
+		"专供文档示例使用，旨在提供直观的参考。",
+		"许可要求",
+		"在文档中使用此域名无需获取额外许可。",
+		"操作限制",
+		"严禁将此类域名应用于实际的生产运营或业务流程中。",
+	}
+	got := normalizeStudioBlocks(blocks)
+	if strings.Contains(got, "属性详细描述主要用途") {
+		t.Fatalf("container duplicate was not removed:\n%s", got)
+	}
+	if !strings.Contains(got, "CLI Report") || !strings.Contains(got, "许可要求") {
+		t.Fatalf("normalized body lost leaf content:\n%s", got)
 	}
 }
 

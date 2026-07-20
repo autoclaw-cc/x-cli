@@ -102,6 +102,9 @@ fail before generation when the requested value is not selected.
 
 Every inspected artifact menu exposed share, rename, download, view prompt and
 sources, and delete. Playback/open flows were verified for audio and video.
+The CLI now exports ready artifact visible text plus metadata with
+`studio export --out`; live verification covered a generated report and wrote a
+local JSON file without using browser-level download routing.
 
 ## Current Automation Limits
 
@@ -119,11 +122,13 @@ sources, and delete. Playback/open flows were verified for audio and video.
 The CLI reports these as unavailable rather than pretending the operation
 succeeded. Pasted text, public URL, grounded chat, editable note creation/list,
 note-to-source conversion, Studio capability discovery, typed artifact listing,
-and Studio generation are implemented. Live generation verification now covers
-all nine visible Studio types: `audio`, `presentation`, `video`, `mind_map`,
-`report`, `flashcards`, `quiz`, `infographic`, and `data_table`; long media
-outputs require larger timeouts or `--wait started` plus `studio wait --out` /
-`studio list` polling. `studio wait --out` persists local JSON evidence for the
-ready artifact, but it does not claim raw media download. Fast/Deep Research
-import, artifact playback/rename/delete, prompt-source inspection, and
-authorized downloads remain future slices.
+Studio generation, slow-output ready polling, and visible text export are
+implemented. Live generation verification now covers all nine visible Studio
+types: `audio`, `presentation`, `video`, `mind_map`, `report`, `flashcards`,
+`quiz`, `infographic`, and `data_table`; long media outputs require larger
+timeouts or `--wait started` plus `studio wait --out` / `studio list` polling.
+`studio wait --out` persists local JSON evidence for the ready artifact, and
+`studio export --out` persists visible text content for ready text artifacts.
+Neither command claims raw media download. Fast/Deep Research import, artifact
+playback/rename/delete, prompt-source inspection, and authorized downloads
+remain future slices.

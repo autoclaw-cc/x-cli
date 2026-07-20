@@ -178,6 +178,21 @@ func TestStudioWaitRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 	}
 }
 
+func TestStudioExportRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "export", "--notebook", "unknown", "--type", "report", "--title", "CLI Report",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
 func TestWriteStudioWaitEvidenceCreatesParentDirectoryAndJSON(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "nested", "artifact.json")
 	err := writeStudioWaitEvidence(path, studioWaitEvidence{
@@ -210,6 +225,43 @@ func TestWriteStudioWaitEvidenceCreatesParentDirectoryAndJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got.NotebookID != "nb-1" || got.Type != "video" || got.Artifact.Title != "Ready Video" || !got.Artifact.Playable {
+		t.Fatalf("evidence = %s", string(raw))
+	}
+}
+
+func TestWriteStudioExportEvidenceCreatesParentDirectoryAndJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nested", "report.json")
+	err := writeStudioExportEvidence(path, studioExportEvidence{
+		NotebookID: "nb-1",
+		Type:       "report",
+		Result: notebooklm.StudioExportResult{
+			Artifact: notebooklm.StudioArtifact{Type: "report", Title: "CLI Report", State: "ready"},
+			Body:     "Report body",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		NotebookID string `json:"notebook_id"`
+		Type       string `json:"type"`
+		Result     struct {
+			Body       string `json:"body"`
+			Characters int    `json:"body_characters"`
+			Artifact   struct {
+				Title string `json:"title"`
+			} `json:"artifact"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.NotebookID != "nb-1" || got.Type != "report" || got.Result.Body != "Report body" ||
+		got.Result.Characters != len("Report body") || got.Result.Artifact.Title != "CLI Report" {
 		t.Fatalf("evidence = %s", string(raw))
 	}
 }

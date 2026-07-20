@@ -34,6 +34,8 @@ notebooklm-cli studio capabilities --notebook ID
 notebooklm-cli studio list --notebook ID
 notebooklm-cli studio generate --notebook ID --type data_table --prompt "Table request"
 notebooklm-cli studio generate --notebook ID --type mind_map --wait started
+notebooklm-cli studio wait --notebook ID --type video --timeout 20m --out artifacts/video-ready.json
+notebooklm-cli studio export --notebook ID --type report --title "CLI Report" --out artifacts/report.json
 ```
 
 Every command prints one JSON envelope. Successful commands use
@@ -83,6 +85,7 @@ notebooklm-cli studio generate --notebook ID --type infographic --prompt "Create
 notebooklm-cli studio generate --notebook ID --type audio --wait started
 notebooklm-cli studio generate --notebook ID --type video --wait started
 notebooklm-cli studio wait --notebook ID --type video --timeout 20m --out artifacts/notebooklm-video.json
+notebooklm-cli studio export --notebook ID --type report --title "CLI Report" --out artifacts/notebooklm-report.json
 notebooklm-cli studio list --notebook ID
 ```
 
@@ -97,10 +100,16 @@ returns once a new artifact of the requested type is visible. Long media outputs
 such as audio and video may require a larger `--timeout`. `studio wait --out`
 polls until the requested type is ready and writes a local JSON evidence file
 with the artifact title, details, state, playable flag, and observation time.
+`studio export --out` opens one exact ready Studio artifact by type and title,
+then writes visible artifact text plus metadata to a local JSON file. It is
+intended for text artifacts such as reports, quizzes, flashcards, data tables,
+mind maps, presentations, and infographics.
 
 ## Known limits
 
 Current Chrome/WebBridge restrictions block browser-level download routing,
 direct local file upload, and automated control inside the cross-origin Google
 Drive picker. `studio wait --out` writes metadata evidence, not raw media bytes.
+`studio export --out` exports visible text content and metadata; it does not
+claim raw audio/video byte downloads.
 The CLI reports unsupported paths instead of silently succeeding.

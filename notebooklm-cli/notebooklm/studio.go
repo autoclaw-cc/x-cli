@@ -34,6 +34,12 @@ type StudioGenerateResult struct {
 	Submitted     bool   `json:"submitted"`
 }
 
+type StudioExportResult struct {
+	Artifact       StudioArtifact `json:"artifact"`
+	Body           string         `json:"body"`
+	BodyCharacters int            `json:"body_characters"`
+}
+
 var studioTypes = map[string]string{
 	"音频概览": "audio", "Audio Overview": "audio",
 	"演示文稿": "presentation", "Presentation": "presentation",
@@ -217,6 +223,81 @@ func studioArtifactReadyKey(artifact StudioArtifact) string {
 	return strings.Join([]string{artifact.Type, artifact.Title, artifact.Details}, "\x1f")
 }
 
+func ExportStudioArtifact(ctx context.Context, bridge Bridge, notebookURL, kind, title string, timeout time.Duration) (*StudioExportResult, error) {
+	kind = normalizeStudioType(kind)
+	if _, ok := studioLabelsByType[kind]; !ok {
+		return nil, fmt.Errorf("unsupported Studio type: %s", kind)
+	}
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return nil, fmt.Errorf("artifact title is empty")
+	}
+	if err := openOwnedNotebook(ctx, bridge, notebookURL, timeout); err != nil {
+		return nil, err
+	}
+	deadline := time.Now().Add(timeout)
+	if err := openStudioArtifacts(ctx, bridge, "notebooklm-export-studio-tab", deadline); err != nil {
+		return nil, err
+	}
+	encodedKind, _ := json.Marshal(kind)
+	encodedTitle, _ := json.Marshal(title)
+	openArtifact := fmt.Sprintf(`(() => {const kind=%s;const title=%s;const typeByIcon={sticky_note_2:'note',audio_magic_eraser:'audio',subscriptions:'video',tablet:'presentation',flowchart:'mind_map',auto_tab_group:'report',cards_star:'flashcards',quiz:'quiz',stacked_bar_chart:'infographic',table_view:'data_table'};const items=[...document.querySelectorAll('*')].filter(e=>e.tagName.startsWith('ARTIFACT-LIBRARY-'));const artifacts=items.map(e=>{const icon=(e.querySelector('.artifact-icon')?.textContent||'').trim();const cardTitle=(e.querySelector('.artifact-title')?.textContent||'').trim();const details=(e.querySelector('.artifact-details')?.textContent||'').trim().replace(/\s+/g,' ');const text=(e.innerText||'').trim();return {node:e,type:typeByIcon[icon]||'unknown',title:cardTitle,details,state:/正在生成|Generating|处理中|Processing/i.test(text)?'generating':cardTitle?'ready':'unknown',playable:[...e.querySelectorAll('button')].some(b=>/播放|Play/i.test(b.getAttribute('aria-label')||'')),hasMenu:!!e.querySelector('.artifact-actions')||[...e.querySelectorAll('button')].some(b=>/更多|More/i.test(b.getAttribute('aria-label')||''))};}).filter(e=>e.title);const matches=artifacts.filter(e=>e.type===kind&&e.title===title);if(matches.length!==1)return {ok:false,matches:matches.length,available:artifacts.map(e=>({type:e.type,title:e.title,state:e.state})).slice(0,20)};const selected=matches[0];if(selected.state!=='ready')return {ok:false,matches:1,state:selected.state};const b=selected.node.querySelector('button.artifact-stretched-button')||selected.node.querySelector('.artifact-item-button')||selected.node.querySelector('button');if(!b)return {ok:false,matches:1,state:selected.state,noButton:true};b.id='notebooklm-export-artifact';b.click();return {ok:true,artifact:{type:selected.type,title:selected.title,details:selected.details,state:selected.state,playable:selected.playable,has_menu:selected.hasMenu}};})()`, encodedKind, encodedTitle)
+	type openArtifactState struct {
+		OK        bool           `json:"ok"`
+		Matches   int            `json:"matches"`
+		State     string         `json:"state"`
+		NoButton  bool           `json:"noButton"`
+		Artifact  StudioArtifact `json:"artifact"`
+		Available []struct {
+			Type  string `json:"type"`
+			Title string `json:"title"`
+			State string `json:"state"`
+		} `json:"available"`
+	}
+	var opened openArtifactState
+	var lastErr error
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		var state openArtifactState
+		if err := bridge.EvaluateValue(openArtifact, &state); err == nil {
+			if state.OK {
+				opened = state
+				break
+			}
+			switch {
+			case state.Matches > 1:
+				return nil, fmt.Errorf("artifact title/type is not unique")
+			case state.NoButton:
+				lastErr = fmt.Errorf("artifact open control not found")
+			case state.Matches == 1:
+				lastErr = fmt.Errorf("artifact is not ready: %s", state.State)
+			default:
+				lastErr = fmt.Errorf("artifact not found")
+			}
+		} else {
+			lastErr = err
+		}
+		if time.Now().After(deadline) {
+			if lastErr != nil {
+				return nil, lastErr
+			}
+			return nil, fmt.Errorf("timeout: Studio artifact did not become exportable")
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	body, err := waitStudioArtifactBody(ctx, bridge, title, deadline)
+	if err != nil {
+		return nil, err
+	}
+	return &StudioExportResult{
+		Artifact:       opened.Artifact,
+		Body:           body,
+		BodyCharacters: len([]rune(body)),
+	}, nil
+}
+
 func GenerateStudioArtifact(ctx context.Context, bridge Bridge, notebookURL, kind, prompt string, waitReady bool, timeout time.Duration) (*StudioGenerateResult, error) {
 	kind = normalizeStudioType(kind)
 	labels, ok := studioLabelsByType[kind]
@@ -291,6 +372,71 @@ func openStudioArtifacts(ctx context.Context, bridge Bridge, elementID string, d
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
+}
+
+func waitStudioArtifactBody(ctx context.Context, bridge Bridge, title string, deadline time.Time) (string, error) {
+	encodedTitle, _ := json.Marshal(title)
+	inspect := fmt.Sprintf(`(() => {const title=%s;const visible=e=>!!(e&&(e.offsetWidth||e.offsetHeight||e.getClientRects().length));const viewer=document.querySelector('artifact-viewer');if(!visible(viewer))return {ready:false,blocks:[],body:''};const content=viewer.querySelector('.artifact-content')||viewer;const clone=content.cloneNode(true);clone.querySelectorAll('button,mat-icon,.mat-mdc-button-touch-target,.mat-ripple,.cdk-visually-hidden').forEach(e=>e.remove());const structural=[...clone.querySelectorAll('labs-tailwind-structural-element-view-v2')];let blocks=structural.map(e=>(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim()).filter(Boolean);if(blocks.length===0){const raw=(clone.innerText||clone.textContent||'').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();blocks=raw?raw.split(/\n+/).map(e=>e.trim()).filter(Boolean):[];}const body=blocks.join('\n\n').trim();return {ready:body.length>0&&body.includes(title),blocks,body};})()`, encodedTitle)
+	for {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		var state struct {
+			Ready  bool     `json:"ready"`
+			Blocks []string `json:"blocks"`
+			Body   string   `json:"body"`
+		}
+		if err := bridge.EvaluateValue(inspect, &state); err == nil && state.Ready {
+			body := normalizeStudioBlocks(state.Blocks)
+			if body == "" {
+				body = strings.TrimSpace(state.Body)
+			}
+			if body != "" && strings.Contains(body, title) {
+				return body, nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("timeout: Studio artifact body did not become ready")
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func normalizeStudioBlocks(blocks []string) string {
+	cleaned := make([]string, 0, len(blocks))
+	for _, block := range blocks {
+		block = strings.Join(strings.Fields(block), " ")
+		if block == "" {
+			continue
+		}
+		if len(cleaned) > 0 && cleaned[len(cleaned)-1] == block {
+			continue
+		}
+		cleaned = append(cleaned, block)
+	}
+	filtered := make([]string, 0, len(cleaned))
+	for i, block := range cleaned {
+		compactBlock := compactStudioText(block)
+		contained := 0
+		for j, other := range cleaned {
+			if i == j {
+				continue
+			}
+			compactOther := compactStudioText(other)
+			if len([]rune(compactOther)) >= 2 && compactBlock != compactOther && strings.Contains(compactBlock, compactOther) {
+				contained++
+			}
+		}
+		if len([]rune(compactBlock)) > 40 && contained >= 3 {
+			continue
+		}
+		filtered = append(filtered, block)
+	}
+	return strings.Join(filtered, "\n\n")
+}
+
+func compactStudioText(text string) string {
+	return strings.Join(strings.Fields(text), "")
 }
 
 func readStudioArtifactsStable(ctx context.Context, bridge Bridge, deadline time.Time) ([]StudioArtifact, error) {

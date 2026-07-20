@@ -422,7 +422,7 @@ func (a *app) studioCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
 	_ = command.MarkFlagRequired("notebook")
-	parent.AddCommand(command, a.studioListCommand(), a.studioGenerateCommand(), a.studioWaitCommand())
+	parent.AddCommand(command, a.studioListCommand(), a.studioGenerateCommand(), a.studioWaitCommand(), a.studioExportCommand())
 	return parent
 }
 
@@ -503,6 +503,14 @@ type studioWaitEvidence struct {
 	Artifact   notebooklm.StudioArtifact `json:"artifact"`
 }
 
+type studioExportEvidence struct {
+	NotebookID string                        `json:"notebook_id"`
+	Type       string                        `json:"type"`
+	ObservedAt string                        `json:"observed_at"`
+	OutputPath string                        `json:"output_path,omitempty"`
+	Result     notebooklm.StudioExportResult `json:"result"`
+}
+
 func (a *app) studioWaitCommand() *cobra.Command {
 	var notebookID, kind, outPath string
 	command := &cobra.Command{
@@ -546,8 +554,64 @@ func (a *app) studioWaitCommand() *cobra.Command {
 	return command
 }
 
+func (a *app) studioExportCommand() *cobra.Command {
+	var notebookID, kind, title, outPath string
+	command := &cobra.Command{
+		Use:   "export",
+		Short: "Export a unique ready Studio artifact body and metadata",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.ExportStudioArtifact(cmd.Context(), client, owned.URL, kind, title, a.timeout)
+				if err != nil {
+					return err
+				}
+				evidence := studioExportEvidence{
+					NotebookID: notebookID,
+					Type:       result.Artifact.Type,
+					ObservedAt: time.Now().UTC().Format(time.RFC3339),
+					OutputPath: outPath,
+					Result:     *result,
+				}
+				if outPath != "" {
+					if err := writeStudioExportEvidence(outPath, evidence); err != nil {
+						return &commandError{code: "write_failed", message: err.Error()}
+					}
+				}
+				return output.Success(a.out, evidence)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&kind, "type", "", "Studio output type to export")
+	command.Flags().StringVar(&title, "title", "", "exact unique Studio artifact title")
+	command.Flags().StringVar(&outPath, "out", "", "optional local JSON export path")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("type")
+	_ = command.MarkFlagRequired("title")
+	return command
+}
+
 func writeStudioWaitEvidence(path string, evidence studioWaitEvidence) error {
-	body, err := json.MarshalIndent(evidence, "", "  ")
+	return writeJSONEvidence(path, evidence)
+}
+
+func writeStudioExportEvidence(path string, evidence studioExportEvidence) error {
+	if evidence.Result.BodyCharacters == 0 && evidence.Result.Body != "" {
+		evidence.Result.BodyCharacters = len([]rune(evidence.Result.Body))
+	}
+	return writeJSONEvidence(path, evidence)
+}
+
+func writeJSONEvidence(path string, value any) error {
+	body, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode evidence: %w", err)
 	}
