@@ -3,12 +3,22 @@ package notebooklm
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 type scriptedBridge struct {
 	calls     []string
 	evals     []any
 	evalIndex int
+}
+
+func hasCallContaining(calls []string, want string) bool {
+	for _, call := range calls {
+		if strings.Contains(call, want) {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *scriptedBridge) Navigate(url string, newTab bool, groupTitle string) error {

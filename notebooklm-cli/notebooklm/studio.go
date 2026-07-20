@@ -3,6 +3,7 @@ package notebooklm
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 type StudioCapabilities struct {
@@ -25,13 +26,10 @@ func InspectStudio(ctx context.Context, bridge Bridge, notebookURL string) (*Stu
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if err := bridge.Navigate(notebookURL, true, "NotebookLM CLI"); err != nil {
-		return nil, fmt.Errorf("navigate notebook: %w", err)
+	if err := openOwnedNotebook(ctx, bridge, notebookURL, 2*time.Minute); err != nil {
+		return nil, err
 	}
-	if err := bridge.CDP("Page.bringToFront", map[string]any{}); err != nil {
-		return nil, fmt.Errorf("activate page: %w", err)
-	}
-	const openStudio = `(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>(x.textContent||'').trim()==='Studio');if(!e)return {ok:false};e.click();return {ok:true};})()`
+	const openStudio = `(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>(x.textContent||'').trim()==='Studio');if(!e)return {ok:false};e.id='notebooklm-studio-tab';return {ok:true};})()`
 	var opened struct {
 		OK bool `json:"ok"`
 	}
@@ -41,12 +39,25 @@ func InspectStudio(ctx context.Context, bridge Bridge, notebookURL string) (*Stu
 		}
 		return nil, err
 	}
+	if err := bridge.MouseClick("#notebooklm-studio-tab"); err != nil {
+		return nil, fmt.Errorf("open Studio: %w", err)
+	}
 	const inspect = `(() => ({labels:[...document.querySelectorAll('.create-artifact-button-container[aria-label]')].map(e=>e.getAttribute('aria-label')).filter(Boolean)}))()`
+	deadline := time.Now().Add(15 * time.Second)
 	var result struct {
 		Labels []string `json:"labels"`
 	}
-	if err := bridge.EvaluateValue(inspect, &result); err != nil {
-		return nil, fmt.Errorf("inspect Studio: %w", err)
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if err := bridge.EvaluateValue(inspect, &result); err == nil && len(result.Labels) > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout: Studio controls did not become ready")
+		}
+		time.Sleep(250 * time.Millisecond)
 	}
 	seen := map[string]bool{}
 	types := make([]string, 0, len(result.Labels))

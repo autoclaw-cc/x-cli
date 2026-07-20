@@ -50,7 +50,10 @@ func CreateNotebook(ctx context.Context, bridge Bridge, title string, timeout ti
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		const inspect = `(() => ({url:location.href,ready:/\/notebook\/[0-9a-f-]{36}/i.test(location.pathname)}))()`
+		const inspect = `(() => ({
+  url:location.href,
+  ready:/\/notebook\/[0-9a-f-]{36}/i.test(location.pathname) && !!document.querySelector('input.title-input')
+}))()`
 		if err := bridge.EvaluateValue(inspect, &state); err == nil && state.Ready {
 			break
 		}

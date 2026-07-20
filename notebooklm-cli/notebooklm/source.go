@@ -15,25 +15,50 @@ func AddTextSource(ctx context.Context, bridge Bridge, notebookURL, text string,
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("source text is empty")
 	}
-	if err := bridge.Navigate(notebookURL, true, "NotebookLM CLI"); err != nil {
-		return nil, fmt.Errorf("navigate notebook: %w", err)
+	if err := openOwnedNotebook(ctx, bridge, notebookURL, timeout); err != nil {
+		return nil, err
 	}
-	if err := bridge.CDP("Page.bringToFront", map[string]any{}); err != nil {
-		return nil, fmt.Errorf("activate page: %w", err)
+	deadline := time.Now().Add(timeout)
+	controls := []struct {
+		tag      string
+		selector string
+		ready    string
+	}{
+		{
+			tag:      `(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>/^(来源|Sources?)$/.test((x.textContent||'').trim()));if(!e)return {ok:false,sourceCount:0};e.id='notebooklm-sources-tab';const xs=[...document.querySelectorAll('input[type=checkbox][aria-label]')].filter(x=>!/(选择所有来源|Select all sources)/i.test(x.getAttribute('aria-label')||''));return {ok:true,sourceCount:xs.length};})()`,
+			selector: "#notebooklm-sources-tab",
+			ready:    `(() => {const e=document.querySelector('#notebooklm-sources-tab');return {ready:e?.getAttribute('aria-selected')==='true'&&!!document.querySelector('button[aria-label="添加来源"],button[aria-label="Add source"]')};})()`,
+		},
+		{
+			tag:      `(() => {const b=document.querySelector('button[aria-label="添加来源"],button[aria-label="Add source"]');if(!b)return {ok:false};b.id='notebooklm-add-source';return {ok:true};})()`,
+			selector: "#notebooklm-add-source",
+			ready:    `(() => ({ready:[...document.querySelectorAll('button')].some(e=>/复制的文字|copied text|paste text/i.test(e.textContent||''))}))()`,
+		},
+		{
+			tag:      `(() => {const b=[...document.querySelectorAll('button')].find(e=>/复制的文字|copied text|paste text/i.test(e.textContent||''));if(!b)return {ok:false};b.id='notebooklm-pasted-text';return {ok:true};})()`,
+			selector: "#notebooklm-pasted-text",
+			ready:    `(() => ({ready:!!document.querySelector('textarea[aria-label="粘贴的文字"],textarea[aria-label="Pasted text"]')}))()`,
+		},
 	}
-	steps := []string{
-		`(() => {const e=[...document.querySelectorAll('[role=tab]')].find(x=>/^(来源|Sources?)$/.test((x.textContent||'').trim()));if(!e)return {ok:false};e.click();return {ok:true};})()`,
-		`(() => {const b=document.querySelector('button[aria-label="添加来源"],button[aria-label="Add source"]');if(!b)return {ok:false};b.click();return {ok:true};})()`,
-		`(() => {const b=[...document.querySelectorAll('button')].find(e=>/复制的文字|copied text|paste text/i.test(e.textContent||''));if(!b)return {ok:false};b.click();return {ok:true};})()`,
-	}
-	for _, script := range steps {
-		var result struct {
-			OK bool `json:"ok"`
+	baselineSourceCount := -1
+	for i, control := range controls {
+		var tagged struct {
+			OK          bool `json:"ok"`
+			SourceCount int  `json:"sourceCount"`
 		}
-		if err := bridge.EvaluateValue(script, &result); err != nil || !result.OK {
+		if err := bridge.EvaluateValue(control.tag, &tagged); err != nil || !tagged.OK {
 			if err == nil {
 				err = fmt.Errorf("source control not found")
 			}
+			return nil, err
+		}
+		if i == 0 {
+			baselineSourceCount = tagged.SourceCount
+		}
+		if err := bridge.MouseClick(control.selector); err != nil {
+			return nil, fmt.Errorf("activate source control: %w", err)
+		}
+		if err := waitSourceReady(ctx, bridge, control.ready, deadline); err != nil {
 			return nil, err
 		}
 	}
@@ -48,17 +73,19 @@ func AddTextSource(ctx context.Context, bridge Bridge, notebookURL, text string,
 		OK       bool `json:"ok"`
 		Disabled bool `json:"disabled"`
 	}
-	if err := bridge.EvaluateValue(tagInsert, &insert); err != nil {
-		return nil, err
-	}
-	if !insert.OK || insert.Disabled {
-		return nil, fmt.Errorf("source insert control is disabled")
+	for {
+		if err := bridge.EvaluateValue(tagInsert, &insert); err == nil && insert.OK && !insert.Disabled {
+			break
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout: source insert control did not enable")
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	if err := bridge.MouseClick("#notebooklm-insert-source"); err != nil {
 		return nil, fmt.Errorf("insert source: %w", err)
 	}
 
-	deadline := time.Now().Add(timeout)
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -68,11 +95,29 @@ func AddTextSource(ctx context.Context, bridge Bridge, notebookURL, text string,
 			Ready       bool `json:"ready"`
 			SourceCount int  `json:"sourceCount"`
 		}
-		if err := bridge.EvaluateValue(inspect, &state); err == nil && state.Ready {
+		if err := bridge.EvaluateValue(inspect, &state); err == nil && state.Ready && state.SourceCount > baselineSourceCount {
 			return &SourceResult{SourceCount: state.SourceCount}, nil
 		}
 		if time.Now().After(deadline) {
 			return nil, fmt.Errorf("timeout: source did not become ready")
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+func waitSourceReady(ctx context.Context, bridge Bridge, script string, deadline time.Time) error {
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		var state struct {
+			Ready bool `json:"ready"`
+		}
+		if err := bridge.EvaluateValue(script, &state); err == nil && state.Ready {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout: source control did not become ready")
 		}
 		time.Sleep(250 * time.Millisecond)
 	}

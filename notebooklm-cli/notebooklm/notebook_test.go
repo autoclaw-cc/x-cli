@@ -2,6 +2,7 @@ package notebooklm
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -21,5 +22,14 @@ func TestCreateNotebookReturnsStableIDAndExactTitle(t *testing.T) {
 	}
 	if !hasCall(b.calls, "cdp:Page.bringToFront") {
 		t.Fatalf("calls = %#v", b.calls)
+	}
+	foundReadyGuard := false
+	for _, call := range b.calls {
+		if strings.Contains(call, "ready:") && strings.Contains(call, "input.title-input") {
+			foundReadyGuard = true
+		}
+	}
+	if !foundReadyGuard {
+		t.Fatalf("creation readiness must include title input: %#v", b.calls)
 	}
 }
