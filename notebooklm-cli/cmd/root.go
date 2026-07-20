@@ -288,7 +288,7 @@ func (a *app) chatCommand() *cobra.Command {
 
 func (a *app) noteCommand() *cobra.Command {
 	parent := &cobra.Command{Use: "note", Short: "Manage editable notes in CLI-owned notebooks"}
-	parent.AddCommand(a.noteCreateCommand(), a.noteListCommand())
+	parent.AddCommand(a.noteCreateCommand(), a.noteListCommand(), a.noteToSourceCommand())
 	return parent
 }
 
@@ -363,6 +363,36 @@ func (a *app) noteListCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
 	_ = command.MarkFlagRequired("notebook")
+	return command
+}
+
+func (a *app) noteToSourceCommand() *cobra.Command {
+	var notebookID, title string
+	command := &cobra.Command{
+		Use:   "to-source",
+		Short: "Convert a unique note title into a NotebookLM source",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.ConvertNoteToSource(cmd.Context(), client, owned.URL, title, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&title, "title", "", "exact unique note title")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("title")
 	return command
 }
 

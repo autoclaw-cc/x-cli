@@ -118,12 +118,12 @@ sources, and delete. Playback/open flows were verified for audio and video.
 
 The CLI reports these as unavailable rather than pretending the operation
 succeeded. Pasted text, public URL, grounded chat, editable note creation/list,
-Studio capability discovery, typed artifact listing, and Studio generation are
-implemented. Live generation verification now covers all nine visible Studio
-types: `audio`, `presentation`, `video`, `mind_map`, `report`, `flashcards`,
-`quiz`, `infographic`, and `data_table`; long media outputs require larger
-timeouts or `--wait started` plus `studio wait --out` / `studio list` polling.
-`studio wait --out` persists local JSON evidence for the ready artifact, but it
-does not claim raw media download. Fast/Deep
-Research import, note-to-source, artifact playback/rename/delete,
-prompt-source inspection, and authorized downloads remain future slices.
+note-to-source conversion, Studio capability discovery, typed artifact listing,
+and Studio generation are implemented. Live generation verification now covers
+all nine visible Studio types: `audio`, `presentation`, `video`, `mind_map`,
+`report`, `flashcards`, `quiz`, `infographic`, and `data_table`; long media
+outputs require larger timeouts or `--wait started` plus `studio wait --out` /
+`studio list` polling. `studio wait --out` persists local JSON evidence for the
+ready artifact, but it does not claim raw media download. Fast/Deep Research
+import, artifact playback/rename/delete, prompt-source inspection, and
+authorized downloads remain future slices.

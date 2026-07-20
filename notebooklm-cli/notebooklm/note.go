@@ -149,7 +149,7 @@ func ConvertNoteToSource(ctx context.Context, bridge Bridge, notebookURL, title 
 		return nil, err
 	}
 	encodedTitle, _ := json.Marshal(title)
-	tagNote := fmt.Sprintf(`(() => {const notes=[...document.querySelectorAll('artifact-library-note')];const matches=notes.filter(e=>(e.querySelector('.artifact-title')?.textContent||'').trim()===%s);const b=matches[0]?.querySelector('.artifact-item-button');if(matches.length!==1||!b)return {ok:false,matches:matches.length};b.id='notebooklm-convert-note-target';b.click();return {ok:true,matches:1};})()`, encodedTitle)
+	tagNote := fmt.Sprintf(`(() => {const notes=[...document.querySelectorAll('artifact-library-note')];const matches=notes.filter(e=>(e.querySelector('.artifact-title')?.textContent||'').trim()===%s);const card=matches[0];const b=card?.querySelector('button.artifact-stretched-button')||card?.querySelector('.artifact-item-button');if(matches.length!==1||!b)return {ok:false,matches:matches.length};b.id='notebooklm-convert-note-target';b.click();return {ok:true,matches:1};})()`, encodedTitle)
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err

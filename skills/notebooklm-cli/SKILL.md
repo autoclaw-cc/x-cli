@@ -45,6 +45,7 @@ account identity, or unrequested notebook metadata.
 | `note create --notebook ID --title TITLE --text TEXT` | Create an editable note and verify it appears in Studio |
 | `note create --notebook ID --title TITLE --file PATH` | Create an editable note from UTF-8 text |
 | `note list --notebook ID` | List note titles after the Studio library stabilizes |
+| `note to-source --notebook ID --title TITLE` | Convert a unique note title into a NotebookLM source |
 | `studio capabilities --notebook ID` | Discover visible Studio output types |
 | `studio list --notebook ID` | List typed artifacts, state, details, playback, and menu availability |
 | `studio generate --notebook ID --type TYPE [--prompt TEXT] [--wait started|ready]` | Generate a Studio artifact in an owned notebook |
@@ -63,6 +64,7 @@ notebooklm-cli source add-url --notebook ID --url https://example.com/
 notebooklm-cli chat ask --notebook ID --question "Summarize the evidence with citations."
 notebooklm-cli note create --notebook ID --title "Evidence summary" --file summary.md
 notebooklm-cli note list --notebook ID
+notebooklm-cli note to-source --notebook ID --title "Evidence summary"
 notebooklm-cli studio capabilities --notebook ID
 notebooklm-cli studio generate --notebook ID --type data_table --prompt "Build a compact comparison table."
 notebooklm-cli studio generate --notebook ID --type mind_map --prompt "Map the key evidence."

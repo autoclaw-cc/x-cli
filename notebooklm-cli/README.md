@@ -29,6 +29,7 @@ notebooklm-cli chat ask --notebook ID --question "What does the source say?"
 notebooklm-cli note create --notebook ID --title "CLI NOTE" --text "note body"
 notebooklm-cli note create --notebook ID --title "CLI NOTE" --file note.md
 notebooklm-cli note list --notebook ID
+notebooklm-cli note to-source --notebook ID --title "CLI NOTE"
 notebooklm-cli studio capabilities --notebook ID
 notebooklm-cli studio list --notebook ID
 notebooklm-cli studio generate --notebook ID --type data_table --prompt "Table request"
@@ -70,6 +71,7 @@ notebooklm-cli source add-url --notebook ID --url https://example.com/
 notebooklm-cli chat ask --notebook ID --question "What is the checkpoint?"
 notebooklm-cli note create --notebook ID --title "CLI NOTE" --text "Verified notes persist."
 notebooklm-cli note list --notebook ID
+notebooklm-cli note to-source --notebook ID --title "CLI NOTE"
 notebooklm-cli studio capabilities --notebook ID
 notebooklm-cli studio generate --notebook ID --type data_table --prompt "Build a compact comparison table."
 notebooklm-cli studio generate --notebook ID --type mind_map --prompt "Map the key evidence."
@@ -86,9 +88,10 @@ notebooklm-cli studio list --notebook ID
 
 Live verification confirmed exact notebook creation and reopening, stable
 text and URL source-count growth, grounded answers with citation counts,
-editable note persistence in Studio, typed Studio artifact listing, Studio
-generation for all nine visible Studio types: `audio`, `presentation`, `video`,
-`mind_map`, `report`, `flashcards`, `quiz`, `infographic`, and `data_table`.
+editable note persistence in Studio, note-to-source conversion, typed Studio
+artifact listing, Studio generation for all nine visible Studio types: `audio`,
+`presentation`, `video`, `mind_map`, `report`, `flashcards`, `quiz`,
+`infographic`, and `data_table`.
 `studio generate --wait ready` waits for completion; the default `--wait started`
 returns once a new artifact of the requested type is visible. Long media outputs
 such as audio and video may require a larger `--timeout`. `studio wait --out`

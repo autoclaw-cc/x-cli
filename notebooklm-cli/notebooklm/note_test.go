@@ -106,6 +106,9 @@ func TestConvertNoteToSourceRequiresUniqueTitleAndSourceIncrement(t *testing.T) 
 	if sourceTabActivations < 2 {
 		t.Fatalf("conversion must read source counts from Sources tab before and after converting: %#v", b.calls)
 	}
+	if !hasCallContaining(b.calls, "artifact-stretched-button") {
+		t.Fatalf("conversion must click the inner stretched note button: %#v", b.calls)
+	}
 	if !hasCall(b.calls, "mouse_click:#notebooklm-convert-note") || !hasCallContaining(b.calls, "Convert to source") {
 		t.Fatalf("calls = %#v", b.calls)
 	}
