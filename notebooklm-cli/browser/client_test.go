@@ -71,6 +71,28 @@ func TestEvaluateValueUnwrapsValue(t *testing.T) {
 	}
 }
 
+func TestFillSendsSelectorAndValue(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Action string         `json:"action"`
+			Args   map[string]any `json:"args"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body.Action != "fill" || body.Args["selector"] != ".ProseMirror" || body.Args["value"] != "LAPIS-5502" {
+			t.Fatalf("request = %#v", body)
+		}
+		json.NewEncoder(w).Encode(map[string]any{"ok": true, "data": map[string]any{"success": true, "mode": "contenteditable"}})
+	}))
+	defer ts.Close()
+
+	c := NewClient(ts.URL, "s")
+	if err := c.Fill(".ProseMirror", "LAPIS-5502"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestCallReturnsDaemonError(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{

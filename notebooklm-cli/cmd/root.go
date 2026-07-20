@@ -57,7 +57,7 @@ func (a *app) rootCommand() *cobra.Command {
 	root.PersistentFlags().StringVar(&a.registryPath, "registry", a.registryPath, "owned notebook registry path")
 	root.PersistentFlags().DurationVar(&a.timeout, "timeout", a.timeout, "maximum workflow wait")
 	root.AddCommand(a.loginStatusCommand(), a.capabilitiesCommand())
-	root.AddCommand(a.notebookCommand(), a.sourceCommand(), a.chatCommand(), a.studioCommand())
+	root.AddCommand(a.notebookCommand(), a.sourceCommand(), a.chatCommand(), a.noteCommand(), a.studioCommand())
 	return root
 }
 
@@ -218,8 +218,38 @@ func (a *app) sourceCommand() *cobra.Command {
 	command.Flags().StringVar(&text, "text", "", "text to paste as a source")
 	command.Flags().StringVar(&file, "file", "", "UTF-8 text file to paste as a source")
 	_ = command.MarkFlagRequired("notebook")
-	parent.AddCommand(command)
+	parent.AddCommand(command, a.sourceAddURLCommand())
 	return parent
+}
+
+func (a *app) sourceAddURLCommand() *cobra.Command {
+	var notebookID, rawURL string
+	command := &cobra.Command{
+		Use:   "add-url",
+		Short: "Add a public website or YouTube URL as a source",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.AddURLSource(cmd.Context(), client, owned.URL, rawURL, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&rawURL, "url", "", "absolute public website or YouTube URL")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("url")
+	return command
 }
 
 func (a *app) chatCommand() *cobra.Command {
@@ -254,6 +284,86 @@ func (a *app) chatCommand() *cobra.Command {
 	return parent
 }
 
+func (a *app) noteCommand() *cobra.Command {
+	parent := &cobra.Command{Use: "note", Short: "Manage editable notes in CLI-owned notebooks"}
+	parent.AddCommand(a.noteCreateCommand(), a.noteListCommand())
+	return parent
+}
+
+func (a *app) noteCreateCommand() *cobra.Command {
+	var notebookID, title, text, file string
+	command := &cobra.Command{
+		Use:   "create",
+		Short: "Create an editable note and verify it after reopening",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if (text == "") == (file == "") {
+				return &commandError{code: "invalid_args", message: "provide exactly one of --text or --file"}
+			}
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			content := text
+			if file != "" {
+				body, err := os.ReadFile(file)
+				if err != nil {
+					return &commandError{code: "invalid_args", message: fmt.Sprintf("read note file: %v", err)}
+				}
+				if len(body) > 5<<20 {
+					return &commandError{code: "invalid_args", message: "note file exceeds 5 MiB"}
+				}
+				content = string(body)
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.CreateNote(cmd.Context(), client, owned.URL, title, content, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&title, "title", "", "unique note title")
+	command.Flags().StringVar(&text, "text", "", "plain text note body")
+	command.Flags().StringVar(&file, "file", "", "UTF-8 file to use as the note body")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("title")
+	return command
+}
+
+func (a *app) noteListCommand() *cobra.Command {
+	var notebookID string
+	command := &cobra.Command{
+		Use:   "list",
+		Short: "List editable and saved-answer note titles",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.ListNotes(cmd.Context(), client, owned.URL, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	_ = command.MarkFlagRequired("notebook")
+	return command
+}
+
 func (a *app) studioCommand() *cobra.Command {
 	parent := &cobra.Command{Use: "studio", Short: "Inspect Studio in CLI-owned notebooks"}
 	var notebookID string
@@ -280,8 +390,36 @@ func (a *app) studioCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
 	_ = command.MarkFlagRequired("notebook")
-	parent.AddCommand(command)
+	parent.AddCommand(command, a.studioListCommand())
 	return parent
+}
+
+func (a *app) studioListCommand() *cobra.Command {
+	var notebookID string
+	command := &cobra.Command{
+		Use:   "list",
+		Short: "List typed Studio artifacts and their visible state",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.ListStudioArtifacts(cmd.Context(), client, owned.URL, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	_ = command.MarkFlagRequired("notebook")
+	return command
 }
 
 func (a *app) withClient(ctx context.Context, fn func(*browser.Client) error) error {

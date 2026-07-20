@@ -14,10 +14,25 @@ func TestHelpListsPrimaryCommands(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("code = %d, stderr = %s", code, errOut.String())
 	}
-	for _, want := range []string{"login-status", "capabilities", "notebook", "source", "chat", "studio"} {
+	for _, want := range []string{"login-status", "capabilities", "notebook", "source", "chat", "note", "studio"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("help missing %q:\n%s", want, out.String())
 		}
+	}
+}
+
+func TestNoteCreateRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"note", "create", "--notebook", "unknown", "--title", "CLI NOTE", "--text", "body",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
 	}
 }
 
@@ -76,6 +91,36 @@ func TestSourceRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 	code := Execute([]string{
 		"--registry", path,
 		"source", "add-text", "--notebook", "unknown", "--text", "hello",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestURLSourceRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"source", "add-url", "--notebook", "unknown", "--url", "https://example.com/",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestStudioListRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "list", "--notebook", "unknown",
 	}, &out, &errOut)
 	if code == 0 {
 		t.Fatal("expected non-zero exit")

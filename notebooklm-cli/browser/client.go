@@ -120,6 +120,11 @@ func (c *Client) KeyType(text string) error {
 	return err
 }
 
+func (c *Client) Fill(selector, value string) error {
+	_, err := c.Call("fill", map[string]any{"selector": selector, "value": value})
+	return err
+}
+
 func (c *Client) SendKeys(keys string) error {
 	_, err := c.Call("send_keys", map[string]any{"keys": keys})
 	return err

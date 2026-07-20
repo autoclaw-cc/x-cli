@@ -40,8 +40,13 @@ account identity, or unrequested notebook metadata.
 | `notebook authorize --url URL --title TITLE --confirm` | Deliberately register one exact notebook |
 | `source add-text --notebook ID --text TEXT` | Add a pasted-text source |
 | `source add-text --notebook ID --file PATH` | Add a local UTF-8 file as pasted text |
+| `source add-url --notebook ID --url URL` | Add a public website or YouTube URL source |
 | `chat ask --notebook ID --question QUESTION` | Return a grounded answer and citation count |
+| `note create --notebook ID --title TITLE --text TEXT` | Create and reopen-verify an editable note |
+| `note create --notebook ID --title TITLE --file PATH` | Create an editable note from UTF-8 text |
+| `note list --notebook ID` | List note titles after the Studio library stabilizes |
 | `studio capabilities --notebook ID` | Discover visible Studio output types |
+| `studio list --notebook ID` | List typed artifacts, state, details, playback, and menu availability |
 
 Run `notebooklm-cli <command> --help` for flags. All commands return one JSON
 envelope on stdout and use a non-zero exit status on error.
@@ -52,8 +57,12 @@ envelope on stdout and use a non-zero exit status on error.
 notebooklm-cli login-status
 notebooklm-cli notebook create --title "CLI TEST - research"
 notebooklm-cli source add-text --notebook ID --file case-pack.md
+notebooklm-cli source add-url --notebook ID --url https://example.com/
 notebooklm-cli chat ask --notebook ID --question "Summarize the evidence with citations."
+notebooklm-cli note create --notebook ID --title "Evidence summary" --file summary.md
+notebooklm-cli note list --notebook ID
 notebooklm-cli studio capabilities --notebook ID
+notebooklm-cli studio list --notebook ID
 ```
 
 Use the exact `id` returned by `notebook create`. Do not substitute an ID found

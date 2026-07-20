@@ -31,7 +31,7 @@ func openOwnedNotebook(ctx context.Context, bridge Bridge, rawURL string, timeou
 		return err
 	}
 	deadline := time.Now().Add(timeout)
-	inspect := fmt.Sprintf(`(() => ({ready:location.pathname===%s&&!!document.querySelector('input.title-input')&&!!document.querySelector('[role=tab]')}))()`, encodedPath)
+	inspect := fmt.Sprintf(`(() => {const pageReady=location.pathname===%s&&!!document.querySelector('input.title-input')&&!!document.querySelector('[role=tab]');if(!pageReady)return {ready:false};const visible=e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length);const dialog=[...document.querySelectorAll('[role=dialog]')].filter(visible).find(d=>/复制的文字|Copied text|Paste text|网站|Website|上传文件|Upload files?/i.test(d.innerText||''));if(!dialog)return {ready:true};const close=[...dialog.querySelectorAll('button')].find(e=>/^(关闭|Close)$/i.test(e.getAttribute('aria-label')||''));if(close){close.click();return {ready:false,dialogClosed:true}}return {ready:false};})()`, encodedPath)
 	for {
 		if err := ctx.Err(); err != nil {
 			return err

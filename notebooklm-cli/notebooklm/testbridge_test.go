@@ -49,6 +49,11 @@ func (b *scriptedBridge) KeyType(text string) error {
 	return nil
 }
 
+func (b *scriptedBridge) Fill(selector, value string) error {
+	b.calls = append(b.calls, "fill:"+selector+":"+value)
+	return nil
+}
+
 func (b *scriptedBridge) SendKeys(keys string) error {
 	b.calls = append(b.calls, "send_keys:"+keys)
 	return nil

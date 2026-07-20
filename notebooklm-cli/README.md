@@ -24,8 +24,13 @@ notebooklm-cli notebook create --title "CLI TEST"
 notebooklm-cli notebook authorize --url URL --title "CLI TEST" --confirm
 notebooklm-cli source add-text --notebook ID --text "source text"
 notebooklm-cli source add-text --notebook ID --file source.md
+notebooklm-cli source add-url --notebook ID --url https://example.com/
 notebooklm-cli chat ask --notebook ID --question "What does the source say?"
+notebooklm-cli note create --notebook ID --title "CLI NOTE" --text "note body"
+notebooklm-cli note create --notebook ID --title "CLI NOTE" --file note.md
+notebooklm-cli note list --notebook ID
 notebooklm-cli studio capabilities --notebook ID
+notebooklm-cli studio list --notebook ID
 ```
 
 Every command prints one JSON envelope. Successful commands use
@@ -59,14 +64,19 @@ It never records sources, answers, cookies, request headers, or account IDs.
 notebooklm-cli login-status
 notebooklm-cli notebook create --title "CLI TEST - isolated verification"
 notebooklm-cli source add-text --notebook ID --text "The checkpoint is 7319."
+notebooklm-cli source add-url --notebook ID --url https://example.com/
 notebooklm-cli chat ask --notebook ID --question "What is the checkpoint?"
+notebooklm-cli note create --notebook ID --title "CLI NOTE" --text "Verified notes persist."
+notebooklm-cli note list --notebook ID
 notebooklm-cli studio capabilities --notebook ID
+notebooklm-cli studio list --notebook ID
 ```
 
 Live verification confirmed exact notebook creation and reopening, stable
-source-count growth, grounded answers with citation counts, and discovery of
-`audio`, `presentation`, `video`, `mind_map`, `report`, `flashcards`, `quiz`,
-`infographic`, and `data_table` Studio controls.
+text and URL source-count growth, grounded answers with citation counts,
+editable note persistence after reopening, typed Studio artifact listing, and
+discovery of `audio`, `presentation`, `video`, `mind_map`, `report`,
+`flashcards`, `quiz`, `infographic`, and `data_table` Studio controls.
 
 ## Known limits
 

@@ -21,4 +21,7 @@ func TestOpenOwnedNotebookUsesStaticSameOriginBootstrap(t *testing.T) {
 	if hasCall(b.calls, "navigate:"+url+":true:NotebookLM CLI") {
 		t.Fatalf("direct heavy navigation is forbidden: %#v", b.calls)
 	}
+	if !hasCallContaining(b.calls, "[role=dialog]") || !hasCallContaining(b.calls, "Close") {
+		t.Fatalf("owned notebook readiness must dismiss the zero-source modal: %#v", b.calls)
+	}
 }

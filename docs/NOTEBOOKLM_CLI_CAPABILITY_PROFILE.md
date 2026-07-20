@@ -116,6 +116,9 @@ sources, and delete. Playback/open flows were verified for audio and video.
 - Drive picker automation is blocked by the top-frame-only cross-origin iframe
   boundary.
 
-The CLI should report these as `capability_unavailable` rather than pretending
-the operation succeeded. Pasted text, public URL, research import, chat, notes,
-Studio generation, playback, and artifact listing are ready for implementation.
+The CLI reports these as unavailable rather than pretending the operation
+succeeded. Pasted text, public URL, grounded chat, editable note creation/list,
+Studio capability discovery, and typed artifact listing are implemented and
+live-verified. Fast/Deep Research import, note-to-source, Studio generation,
+artifact playback/rename/delete/prompt-source inspection, and authorized
+downloads remain the next provider-specific command slices.
