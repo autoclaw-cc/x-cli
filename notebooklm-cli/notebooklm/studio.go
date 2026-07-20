@@ -153,6 +153,70 @@ func ListStudioArtifacts(ctx context.Context, bridge Bridge, notebookURL string,
 	}
 }
 
+func WaitStudioArtifactReady(ctx context.Context, bridge Bridge, notebookURL, kind string, timeout time.Duration) (*StudioArtifact, error) {
+	kind = normalizeStudioType(kind)
+	if _, ok := studioLabelsByType[kind]; !ok {
+		return nil, fmt.Errorf("unsupported Studio type: %s", kind)
+	}
+	if err := openOwnedNotebook(ctx, bridge, notebookURL, timeout); err != nil {
+		return nil, err
+	}
+	deadline := time.Now().Add(timeout)
+	if err := openStudioArtifacts(ctx, bridge, "notebooklm-wait-studio-tab", deadline); err != nil {
+		return nil, err
+	}
+	baselineReady := map[string]bool{}
+	baselineCaptured := false
+	sawGenerating := false
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		artifacts, loading, err := readStudioArtifacts(bridge)
+		if err == nil && !loading {
+			readyMatches := make([]StudioArtifact, 0)
+			generating := false
+			for _, artifact := range artifacts {
+				if artifact.Type != kind {
+					continue
+				}
+				switch artifact.State {
+				case "generating":
+					generating = true
+					sawGenerating = true
+				case "ready":
+					readyMatches = append(readyMatches, artifact)
+				}
+			}
+			if !baselineCaptured {
+				baselineCaptured = true
+				for _, artifact := range readyMatches {
+					baselineReady[studioArtifactReadyKey(artifact)] = true
+				}
+				if !generating && len(readyMatches) > 0 {
+					return &readyMatches[0], nil
+				}
+			}
+			for _, artifact := range readyMatches {
+				if !baselineReady[studioArtifactReadyKey(artifact)] {
+					return &artifact, nil
+				}
+			}
+			if !sawGenerating && len(readyMatches) > 0 {
+				return &readyMatches[0], nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timeout: Studio artifact did not reach ready state")
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func studioArtifactReadyKey(artifact StudioArtifact) string {
+	return strings.Join([]string{artifact.Type, artifact.Title, artifact.Details}, "\x1f")
+}
+
 func GenerateStudioArtifact(ctx context.Context, bridge Bridge, notebookURL, kind, prompt string, waitReady bool, timeout time.Duration) (*StudioGenerateResult, error) {
 	kind = normalizeStudioType(kind)
 	labels, ok := studioLabelsByType[kind]

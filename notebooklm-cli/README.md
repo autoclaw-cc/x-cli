@@ -80,6 +80,7 @@ notebooklm-cli studio generate --notebook ID --type presentation --prompt "Creat
 notebooklm-cli studio generate --notebook ID --type infographic --prompt "Create an infographic." --wait ready
 notebooklm-cli studio generate --notebook ID --type audio --wait started
 notebooklm-cli studio generate --notebook ID --type video --wait started
+notebooklm-cli studio wait --notebook ID --type video --timeout 20m --out artifacts/notebooklm-video.json
 notebooklm-cli studio list --notebook ID
 ```
 
@@ -90,10 +91,13 @@ generation for all nine visible Studio types: `audio`, `presentation`, `video`,
 `mind_map`, `report`, `flashcards`, `quiz`, `infographic`, and `data_table`.
 `studio generate --wait ready` waits for completion; the default `--wait started`
 returns once a new artifact of the requested type is visible. Long media outputs
-such as audio and video may require a larger `--timeout`.
+such as audio and video may require a larger `--timeout`. `studio wait --out`
+polls until the requested type is ready and writes a local JSON evidence file
+with the artifact title, details, state, playable flag, and observation time.
 
 ## Known limits
 
 Current Chrome/WebBridge restrictions block browser-level download routing,
 direct local file upload, and automated control inside the cross-origin Google
-Drive picker. The CLI reports unsupported paths instead of silently succeeding.
+Drive picker. `studio wait --out` writes metadata evidence, not raw media bytes.
+The CLI reports unsupported paths instead of silently succeeding.

@@ -48,6 +48,7 @@ account identity, or unrequested notebook metadata.
 | `studio capabilities --notebook ID` | Discover visible Studio output types |
 | `studio list --notebook ID` | List typed artifacts, state, details, playback, and menu availability |
 | `studio generate --notebook ID --type TYPE [--prompt TEXT] [--wait started|ready]` | Generate a Studio artifact in an owned notebook |
+| `studio wait --notebook ID --type TYPE [--out PATH]` | Wait until a Studio artifact type is ready and optionally persist local JSON evidence |
 
 Run `notebooklm-cli <command> --help` for flags. All commands return one JSON
 envelope on stdout and use a non-zero exit status on error.
@@ -72,6 +73,7 @@ notebooklm-cli studio generate --notebook ID --type presentation --prompt "Creat
 notebooklm-cli studio generate --notebook ID --type infographic --prompt "Create an infographic." --wait ready
 notebooklm-cli studio generate --notebook ID --type audio --wait started
 notebooklm-cli studio generate --notebook ID --type video --wait started
+notebooklm-cli studio wait --notebook ID --type video --timeout 20m --out artifacts/notebooklm-video.json
 notebooklm-cli studio list --notebook ID
 ```
 
@@ -88,4 +90,6 @@ by browsing the user's existing notebooks.
   browser authorization and are not exposed by this CLI.
 - `studio generate` supports all nine visible Studio type labels. Long media
   outputs should be run with a larger `--timeout`, or with `--wait started`
-  followed by `studio list` polling.
+  followed by `studio wait --out` or `studio list` polling.
+- `studio wait --out` writes metadata evidence only; it does not download raw
+  audio/video bytes.

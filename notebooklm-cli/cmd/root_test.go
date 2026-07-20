@@ -3,9 +3,12 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"notebooklm-cli/notebooklm"
 )
 
 func TestHelpListsPrimaryCommands(t *testing.T) {
@@ -142,5 +145,56 @@ func TestStudioGenerateRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
 		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestStudioWaitRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "wait", "--notebook", "unknown", "--type", "video",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestWriteStudioWaitEvidenceCreatesParentDirectoryAndJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "nested", "artifact.json")
+	err := writeStudioWaitEvidence(path, studioWaitEvidence{
+		NotebookID: "nb-1",
+		Type:       "video",
+		Artifact: notebooklm.StudioArtifact{
+			Type:     "video",
+			Title:    "Ready Video",
+			Details:  "6:50",
+			State:    "ready",
+			Playable: true,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		NotebookID string `json:"notebook_id"`
+		Type       string `json:"type"`
+		Artifact   struct {
+			Title    string `json:"title"`
+			Playable bool   `json:"playable"`
+		} `json:"artifact"`
+	}
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.NotebookID != "nb-1" || got.Type != "video" || got.Artifact.Title != "Ready Video" || !got.Artifact.Playable {
+		t.Fatalf("evidence = %s", string(raw))
 	}
 }

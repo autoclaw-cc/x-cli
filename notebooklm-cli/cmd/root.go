@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -390,7 +392,7 @@ func (a *app) studioCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
 	_ = command.MarkFlagRequired("notebook")
-	parent.AddCommand(command, a.studioListCommand(), a.studioGenerateCommand())
+	parent.AddCommand(command, a.studioListCommand(), a.studioGenerateCommand(), a.studioWaitCommand())
 	return parent
 }
 
@@ -461,6 +463,74 @@ func (a *app) studioGenerateCommand() *cobra.Command {
 	_ = command.MarkFlagRequired("notebook")
 	_ = command.MarkFlagRequired("type")
 	return command
+}
+
+type studioWaitEvidence struct {
+	NotebookID string                    `json:"notebook_id"`
+	Type       string                    `json:"type"`
+	ObservedAt string                    `json:"observed_at"`
+	OutputPath string                    `json:"output_path,omitempty"`
+	Artifact   notebooklm.StudioArtifact `json:"artifact"`
+}
+
+func (a *app) studioWaitCommand() *cobra.Command {
+	var notebookID, kind, outPath string
+	command := &cobra.Command{
+		Use:   "wait",
+		Short: "Wait for a Studio artifact to become ready and optionally write evidence",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				artifact, err := notebooklm.WaitStudioArtifactReady(cmd.Context(), client, owned.URL, kind, a.timeout)
+				if err != nil {
+					return err
+				}
+				evidence := studioWaitEvidence{
+					NotebookID: notebookID,
+					Type:       artifact.Type,
+					ObservedAt: time.Now().UTC().Format(time.RFC3339),
+					OutputPath: outPath,
+					Artifact:   *artifact,
+				}
+				if outPath != "" {
+					if err := writeStudioWaitEvidence(outPath, evidence); err != nil {
+						return &commandError{code: "write_failed", message: err.Error()}
+					}
+				}
+				return output.Success(a.out, evidence)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&kind, "type", "", "Studio output type to wait for")
+	command.Flags().StringVar(&outPath, "out", "", "optional local JSON evidence path")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("type")
+	return command
+}
+
+func writeStudioWaitEvidence(path string, evidence studioWaitEvidence) error {
+	body, err := json.MarshalIndent(evidence, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode evidence: %w", err)
+	}
+	dir := filepath.Dir(path)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("create evidence directory: %w", err)
+		}
+	}
+	if err := os.WriteFile(path, append(body, '\n'), 0o600); err != nil {
+		return fmt.Errorf("write evidence: %w", err)
+	}
+	return nil
 }
 
 func (a *app) withClient(ctx context.Context, fn func(*browser.Client) error) error {

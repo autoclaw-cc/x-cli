@@ -131,6 +131,31 @@ func TestWaitGeneratedStudioArtifactInfersGeneratingTypeFromTitle(t *testing.T) 
 	}
 }
 
+func TestWaitStudioArtifactReadyReturnsNewReadyArtifactAfterGenerating(t *testing.T) {
+	oldReady := map[string]any{"type": "video", "title": "Old Video", "details": "6:00", "state": "ready", "playable": true}
+	generating := map[string]any{"type": "video", "title": "正在生成视频概览…", "details": "这可能需要一些时间", "state": "generating"}
+	newReady := map[string]any{"type": "video", "title": "New Video", "details": "7:00", "state": "ready", "playable": true}
+	b := &scriptedBridge{evals: []any{
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{"artifacts": []map[string]any{generating, oldReady}},
+		map[string]any{"artifacts": []map[string]any{generating, oldReady}},
+		map[string]any{"artifacts": []map[string]any{newReady, oldReady}},
+	}}
+
+	got, err := WaitStudioArtifactReady(context.Background(), b,
+		"https://notebooklm.google.com/notebook/7471c40e-b33c-4518-b952-3cd786a4e532",
+		"video", 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Title != "New Video" || !got.Playable {
+		t.Fatalf("artifact = %#v", got)
+	}
+}
+
 func TestGenerateStudioArtifactClicksTypeAndWaitsForReadyIncrement(t *testing.T) {
 	b := &scriptedBridge{evals: []any{
 		map[string]any{"ok": true},
