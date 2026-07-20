@@ -76,15 +76,18 @@ notebooklm-cli studio generate --notebook ID --type mind_map --prompt "Map the k
 notebooklm-cli studio generate --notebook ID --type report --wait ready
 notebooklm-cli studio generate --notebook ID --type quiz --prompt "Create a short quiz." --wait ready
 notebooklm-cli studio generate --notebook ID --type flashcards --prompt "Create a small flashcard set." --wait ready
+notebooklm-cli studio generate --notebook ID --type presentation --prompt "Create slides." --wait ready
+notebooklm-cli studio generate --notebook ID --type infographic --prompt "Create an infographic." --wait ready
+notebooklm-cli studio generate --notebook ID --type audio --wait started
+notebooklm-cli studio generate --notebook ID --type video --wait started
 notebooklm-cli studio list --notebook ID
 ```
 
 Live verification confirmed exact notebook creation and reopening, stable
 text and URL source-count growth, grounded answers with citation counts,
 editable note persistence in Studio, typed Studio artifact listing, Studio
-generation for `data_table`, `mind_map`, `report`, `quiz`, and `flashcards`,
-and discovery of `audio`, `presentation`, `video`, `mind_map`, `report`,
-`flashcards`, `quiz`, `infographic`, and `data_table` Studio controls.
+generation for all nine visible Studio types: `audio`, `presentation`, `video`,
+`mind_map`, `report`, `flashcards`, `quiz`, `infographic`, and `data_table`.
 `studio generate --wait ready` waits for completion; the default `--wait started`
 returns once a new artifact of the requested type is visible. Long media outputs
 such as audio and video may require a larger `--timeout`.

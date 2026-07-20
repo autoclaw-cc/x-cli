@@ -72,6 +72,65 @@ func TestListStudioArtifactsReturnsTypedReadyItems(t *testing.T) {
 	}
 }
 
+func TestListStudioArtifactsInfersGeneratingTypesFromTitles(t *testing.T) {
+	items := []map[string]any{
+		{"type": "unknown", "title": "正在生成信息图…", "details": "基于 2 个来源", "state": "generating"},
+		{"type": "unknown", "title": "正在生成音频概览…", "details": "请过几分钟后再来查看", "state": "generating"},
+		{"type": "unknown", "title": "正在生成全面解析视频概览…", "details": "这可能需要一些时间", "state": "generating"},
+	}
+	b := &scriptedBridge{evals: []any{
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{"ok": true},
+		map[string]any{"ready": true},
+		map[string]any{"artifacts": items},
+		map[string]any{"artifacts": items},
+		map[string]any{"artifacts": items},
+		map[string]any{"artifacts": items},
+	}}
+
+	got, err := ListStudioArtifacts(context.Background(), b,
+		"https://notebooklm.google.com/notebook/7471c40e-b33c-4518-b952-3cd786a4e532", 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"infographic", "audio", "video"}
+	for i, wantType := range want {
+		if got.Artifacts[i].Type != wantType {
+			t.Fatalf("artifact %d type = %q, want %q; all=%#v", i, got.Artifacts[i].Type, wantType, got.Artifacts)
+		}
+	}
+}
+
+func TestWaitGeneratedStudioArtifactInfersGeneratingTypeFromTitle(t *testing.T) {
+	cases := []struct {
+		kind  string
+		title string
+	}{
+		{kind: "presentation", title: "正在生成演示文稿…"},
+		{kind: "infographic", title: "正在生成信息图…"},
+		{kind: "audio", title: "正在生成音频概览…"},
+		{kind: "video", title: "正在生成视频概览…"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.kind, func(t *testing.T) {
+			b := &scriptedBridge{evals: []any{
+				map[string]any{"artifacts": []map[string]any{
+					{"type": "unknown", "title": tc.title, "details": "基于 2 个来源", "state": "generating"},
+				}},
+			}}
+
+			got, err := waitGeneratedStudioArtifact(context.Background(), b, tc.kind, 0, false, true, time.Now().Add(2*time.Second))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Type != tc.kind || got.State != "generating" || got.ArtifactCount != 1 {
+				t.Fatalf("generated = %#v", got)
+			}
+		})
+	}
+}
+
 func TestGenerateStudioArtifactClicksTypeAndWaitsForReadyIncrement(t *testing.T) {
 	b := &scriptedBridge{evals: []any{
 		map[string]any{"ok": true},

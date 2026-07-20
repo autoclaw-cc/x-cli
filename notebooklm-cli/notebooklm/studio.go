@@ -125,6 +125,7 @@ func ListStudioArtifacts(ctx context.Context, bridge Bridge, notebookURL string,
 			Artifacts []StudioArtifact `json:"artifacts"`
 		}
 		if err := bridge.EvaluateValue(studioArtifactInspectScript, &state); err == nil && !state.Loading {
+			inferStudioArtifactTypes(state.Artifacts)
 			parts := make([]string, 0, len(state.Artifacts))
 			for _, artifact := range state.Artifacts {
 				parts = append(parts, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%t\x1f%t", artifact.Type, artifact.Title, artifact.Details, artifact.State, artifact.Playable, artifact.HasMenu))
@@ -272,7 +273,27 @@ func readStudioArtifacts(bridge Bridge) ([]StudioArtifact, bool, error) {
 	if state.Artifacts == nil {
 		state.Artifacts = []StudioArtifact{}
 	}
+	inferStudioArtifactTypes(state.Artifacts)
 	return state.Artifacts, state.Loading, nil
+}
+
+func inferStudioArtifactTypes(artifacts []StudioArtifact) {
+	for i := range artifacts {
+		if artifacts[i].Type != "" && artifacts[i].Type != "unknown" {
+			continue
+		}
+		text := strings.ToLower(artifacts[i].Title + "\n" + artifacts[i].Details)
+		switch {
+		case strings.Contains(text, "演示文稿") || strings.Contains(text, "presentation"):
+			artifacts[i].Type = "presentation"
+		case strings.Contains(text, "信息图") || strings.Contains(text, "infographic"):
+			artifacts[i].Type = "infographic"
+		case strings.Contains(text, "音频概览") || strings.Contains(text, "audio overview"):
+			artifacts[i].Type = "audio"
+		case strings.Contains(text, "视频概览") || strings.Contains(text, "video overview"):
+			artifacts[i].Type = "video"
+		}
+	}
 }
 
 func countStudioType(artifacts []StudioArtifact, kind string) int {

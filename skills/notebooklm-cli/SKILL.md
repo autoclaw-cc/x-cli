@@ -68,6 +68,10 @@ notebooklm-cli studio generate --notebook ID --type mind_map --prompt "Map the k
 notebooklm-cli studio generate --notebook ID --type report --wait ready
 notebooklm-cli studio generate --notebook ID --type quiz --prompt "Create a short quiz." --wait ready
 notebooklm-cli studio generate --notebook ID --type flashcards --prompt "Create a small flashcard set." --wait ready
+notebooklm-cli studio generate --notebook ID --type presentation --prompt "Create slides." --wait ready
+notebooklm-cli studio generate --notebook ID --type infographic --prompt "Create an infographic." --wait ready
+notebooklm-cli studio generate --notebook ID --type audio --wait started
+notebooklm-cli studio generate --notebook ID --type video --wait started
 notebooklm-cli studio list --notebook ID
 ```
 
@@ -82,6 +86,6 @@ by browsing the user's existing notebooks.
 - The Google Drive picker is cross-origin and is not automated.
 - Browser-level download routing and direct media downloads require additional
   browser authorization and are not exposed by this CLI.
-- `studio generate` supports the visible Studio type labels. `data_table`,
-  `mind_map`, `report`, `quiz`, and `flashcards` are live-verified in this
-  slice; long media outputs should be run with a larger `--timeout`.
+- `studio generate` supports all nine visible Studio type labels. Long media
+  outputs should be run with a larger `--timeout`, or with `--wait started`
+  followed by `studio list` polling.
