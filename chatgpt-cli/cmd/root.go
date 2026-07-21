@@ -60,7 +60,55 @@ func (a *app) rootCommand() *cobra.Command {
 	root.AddCommand(a.loginStatusCommand())
 	root.AddCommand(a.capabilitiesCommand())
 	root.AddCommand(a.chatCommand())
+	root.AddCommand(a.imageCommand())
 	return root
+}
+
+func (a *app) imageCommand() *cobra.Command {
+	image := &cobra.Command{
+		Use:   "image",
+		Short: "Generate and save images through ChatGPT Web",
+	}
+	image.AddCommand(a.imageGenerateCommand())
+	return image
+}
+
+func (a *app) imageGenerateCommand() *cobra.Command {
+	var prompt string
+	var outDir string
+	var confirm bool
+	generate := &cobra.Command{
+		Use:   "generate",
+		Short: "Generate one image and save it locally",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			prompt = strings.TrimSpace(prompt)
+			if prompt == "" {
+				return &commandError{code: "prompt_required", message: "--prompt is required"}
+			}
+			if !confirm {
+				return &commandError{code: "confirmation_required", message: "image generation creates a ChatGPT conversation and consumes included account allowance; pass --confirm"}
+			}
+			client, err := a.readyBridgeClient()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = client.CloseSession() }()
+			result, err := chatgpt.GenerateImage(client, chatgpt.ImageOptions{
+				Prompt:  prompt,
+				OutDir:  outDir,
+				Timeout: a.timeout,
+			})
+			if err != nil {
+				return &commandError{code: "chatgpt_image_failed", message: err.Error()}
+			}
+			return output.Success(a.out, result)
+		},
+	}
+	generate.Flags().StringVar(&prompt, "prompt", "", "image prompt")
+	generate.Flags().StringVarP(&outDir, "out", "o", ".", "output directory")
+	generate.Flags().BoolVar(&confirm, "confirm", false, "confirm one image generation using the signed-in account")
+	return generate
 }
 
 func (a *app) chatCommand() *cobra.Command {
