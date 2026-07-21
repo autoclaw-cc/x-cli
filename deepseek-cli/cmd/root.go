@@ -184,19 +184,15 @@ func (a *app) chatNewCommand() *cobra.Command {
 			if err := a.ensureDeepSeekTab(client); err != nil {
 				return err
 			}
-			var result deepseek.NewChatResult
-			if err := client.EvaluateValue(deepseek.NewChatScript, &result); err != nil {
+			if err := client.BringToFront(); err != nil {
 				return &commandError{code: "deepseek_new_chat_failed", message: err.Error()}
 			}
-			if !result.OK {
-				if result.Error == "" {
-					result.Error = "new_chat_failed"
-				}
-				return &commandError{code: "deepseek_new_chat_failed", message: result.Error}
+			if err := client.Navigate("https://chat.deepseek.com/", false); err != nil {
+				return &commandError{code: "deepseek_new_chat_failed", message: err.Error()}
 			}
 			return output.Success(a.out, map[string]any{
 				"browser": "webbridge",
-				"started": result.Started,
+				"started": true,
 			})
 		},
 	}
@@ -274,6 +270,9 @@ func (a *app) askDeepSeek(client *browser.Client, prompt string, options askOpti
 	if err := a.ensureDeepSeekTab(client); err != nil {
 		return askResult{}, err
 	}
+	if err := client.BringToFront(); err != nil {
+		return askResult{}, err
+	}
 	modes, err := a.setDeepSeekModes(client, options)
 	if err != nil {
 		return askResult{}, err
@@ -289,15 +288,8 @@ func (a *app) askDeepSeek(client *browser.Client, prompt string, options askOpti
 	if err := client.Fill("textarea", prompt); err != nil {
 		return askResult{}, err
 	}
-	var submit deepseek.SubmitResult
-	if err := client.EvaluateValue(deepseek.SubmitPromptScript, &submit); err != nil {
+	if err := a.waitForPromptSubmit(client); err != nil {
 		return askResult{}, err
-	}
-	if !submit.OK {
-		if submit.Error == "" {
-			submit.Error = "send_button_missing"
-		}
-		return askResult{}, fmt.Errorf("%s", submit.Error)
 	}
 	answer, stable, err := a.waitForStableAnswer(client, baseline.Count)
 	if err != nil {
@@ -307,20 +299,54 @@ func (a *app) askDeepSeek(client *browser.Client, prompt string, options askOpti
 }
 
 func (a *app) setDeepSeekModes(client *browser.Client, options askOptions) ([]string, error) {
-	if !options.deepthink && !options.search {
+	vision := len(options.images) > 0
+	if !options.deepthink && !options.search && !vision {
 		return []string{}, nil
 	}
-	var result deepseek.ModeResult
-	if err := client.EvaluateValue(deepseek.SetModesScript(options.deepthink, options.search), &result); err != nil {
-		return nil, err
+	requested := []struct {
+		name                      string
+		deepthink, search, vision bool
+	}{
+		{name: "deepthink", deepthink: options.deepthink},
+		{name: "web_search", search: options.search},
+		{name: "vision", vision: vision},
 	}
-	if !result.OK {
-		if result.Error == "" {
-			result.Error = "mode_set_failed"
+	enabled := []string{}
+	for _, mode := range requested {
+		if !mode.deepthink && !mode.search && !mode.vision {
+			continue
 		}
-		return nil, fmt.Errorf("%s", result.Error)
+		var result deepseek.ModeResult
+		if err := client.EvaluateValue(deepseek.SetModesScript(mode.deepthink, mode.search, mode.vision), &result); err != nil {
+			return nil, err
+		}
+		if !result.OK {
+			if result.Error == "" {
+				result.Error = "mode_set_failed"
+			}
+			return nil, fmt.Errorf("%s", result.Error)
+		}
+		if err := a.waitForMode(client, mode.name); err != nil {
+			return nil, err
+		}
+		enabled = append(enabled, result.Enabled...)
 	}
-	return result.Enabled, nil
+	return enabled, nil
+}
+
+func (a *app) waitForMode(client *browser.Client, mode string) error {
+	deadline := time.Now().Add(a.timeout)
+	for time.Now().Before(deadline) {
+		var state deepseek.ModeReadyResult
+		if err := client.EvaluateValue(deepseek.ModeReadyScript(mode), &state); err != nil {
+			return err
+		}
+		if state.Ready {
+			return nil
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	return fmt.Errorf("timed out waiting for DeepSeek %s mode", mode)
 }
 
 func (a *app) uploadDeepSeekFiles(client *browser.Client, options askOptions) ([]string, error) {
@@ -354,6 +380,27 @@ func (a *app) uploadDeepSeekFiles(client *browser.Client, options askOptions) ([
 		return nil, err
 	}
 	return paths, nil
+}
+
+func (a *app) waitForPromptSubmit(client *browser.Client) error {
+	deadline := time.Now().Add(a.timeout)
+	for time.Now().Before(deadline) {
+		var submit deepseek.SubmitResult
+		if err := client.EvaluateValue(deepseek.SubmitPromptScript, &submit); err != nil {
+			return err
+		}
+		if submit.OK {
+			return nil
+		}
+		if submit.Error != "send_button_not_ready" {
+			if submit.Error == "" {
+				submit.Error = "send_button_missing"
+			}
+			return fmt.Errorf("%s", submit.Error)
+		}
+		time.Sleep(time.Second)
+	}
+	return fmt.Errorf("timed out waiting for DeepSeek send button")
 }
 
 func (a *app) waitForStableAnswer(client *browser.Client, baselineCount int) (string, int, error) {

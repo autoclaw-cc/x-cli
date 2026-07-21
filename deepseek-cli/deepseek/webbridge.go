@@ -19,16 +19,14 @@ type ModeResult struct {
 	Clicked []string `json:"clicked"`
 }
 
+type ModeReadyResult struct {
+	Ready bool `json:"ready"`
+}
+
 type UploadTargetResult struct {
 	OK       bool   `json:"ok"`
 	Error    string `json:"error"`
 	Selector string `json:"selector"`
-}
-
-type NewChatResult struct {
-	OK      bool   `json:"ok"`
-	Error   string `json:"error"`
-	Started bool   `json:"started"`
 }
 
 const SnapshotScript = `
@@ -62,32 +60,35 @@ const SnapshotScript = `
 })()
 `
 
-func SetModesScript(deepthink, search bool) string {
+func SetModesScript(deepthink, search, vision bool) string {
 	return fmt.Sprintf(`
 (() => {
   function deepseekSetModes() {
-    const desired={deepthink:%t,web_search:%t};
+    const desired={deepthink:%t,web_search:%t,vision:%t};
     const txt=s=>(s||'').replace(/\s+/g,' ').trim();
     const visible=e=>!!(e&&(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
-    const controls=[...document.querySelectorAll('button,[role=button],[role=checkbox],[aria-pressed],div,span')]
-      .filter(e=>visible(e));
-    const specs={
-      deepthink:[/深度思考/i,/DeepThink/i,/Deep Think/i,/\bR1\b/i],
-      web_search:[/智能搜索/i,/联网搜索/i,/联网/i,/\bSearch\b/i,/搜索/i]
+    const label=e=>txt(e.getAttribute('aria-label')||e.innerText||e.textContent);
+    const toggles=[...document.querySelectorAll('[aria-pressed],button,[role=button]')]
+      .filter(visible);
+    const findToggle=patterns=>toggles.find(e=>patterns.some(re=>re.test(label(e))));
+    const controls={
+      deepthink:findToggle([/^(深度思考|DeepThink|Deep Think|R1)$/i]),
+      web_search:findToggle([/^(智能搜索|联网搜索|联网|Web Search|Search)$/i]),
+      vision:document.querySelector('[role=radio][data-model-type="vision"]')
     };
     const active=e=>{
-      const attrs=[e.getAttribute('aria-pressed'),e.getAttribute('aria-checked'),e.getAttribute('data-state')].join(' ').toLowerCase();
+      const pressed=e.getAttribute('aria-pressed')==='true';
+      const checked=e.getAttribute('aria-checked')==='true';
+      const state=(e.getAttribute('data-state')||'').toLowerCase();
       const cls=String(e.className||'').toLowerCase();
-      const label=(txt(e.innerText||e.textContent)+' '+(e.getAttribute('aria-label')||'')).toLowerCase();
-      return /\btrue\b|checked|selected|active|on/.test(attrs+' '+cls) || /已开启|开启中|enabled|active/.test(label);
+      return pressed||checked||/^(checked|selected|active)$/.test(state)||
+        /(?:^|\s)ds-toggle-button--selected(?:\s|$)/.test(cls);
     };
-    const actionable=e=>e.closest('button,[role=button],[role=checkbox]')||e;
     const enabled=[],clicked=[],missing=[];
     for (const [key,want] of Object.entries(desired)) {
       if(!want) continue;
-      const found=controls.find(e=>specs[key].some(re=>re.test(txt(e.innerText||e.textContent)+' '+(e.getAttribute('aria-label')||''))));
-      if(!found){missing.push(key);continue;}
-      const target=actionable(found);
+      const target=controls[key];
+      if(!target||!visible(target)){missing.push(key);continue;}
       if(!active(target)){target.click();clicked.push(key);}
       enabled.push(key);
     }
@@ -96,7 +97,27 @@ func SetModesScript(deepthink, search bool) string {
   }
   return deepseekSetModes();
 })()
-`, deepthink, search)
+`, deepthink, search, vision)
+}
+
+func ModeReadyScript(mode string) string {
+	return fmt.Sprintf(`
+(() => {
+  function deepseekModeReady() {
+    const mode=%q;
+    if(mode==='vision') {
+      const target=document.querySelector('[role=radio][data-model-type="vision"]');
+      return {ready:target?.getAttribute('aria-checked')==='true'};
+    }
+    const wanted=mode==='deepthink'?/^(深度思考|DeepThink|Deep Think|R1)$/i:/^(智能搜索|联网搜索|联网|Web Search|Search)$/i;
+    const clean=s=>(s||'').replace(/\s+/g,' ').trim();
+    const target=[...document.querySelectorAll('[aria-pressed]')]
+      .find(e=>wanted.test(clean(e.getAttribute('aria-label')||e.innerText||e.textContent)));
+    return {ready:target?.getAttribute('aria-pressed')==='true'};
+  }
+  return deepseekModeReady();
+})()
+`, mode)
 }
 
 const PrepareUploadScript = `
@@ -130,22 +151,6 @@ const AnswerSnapshotScript = `
 })()
 `
 
-const NewChatScript = `
-(() => {
-  function deepseekNewChat() {
-    const txt=s=>(s||'').replace(/\s+/g,' ').trim();
-    const visible=e=>!!(e&&(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
-    const target=[...document.querySelectorAll('button,[role=button],a,div,span')]
-      .filter(visible)
-      .find(e=>/新对话|新建对话|New chat|New conversation/i.test(txt(e.innerText||e.textContent)+' '+(e.getAttribute('aria-label')||'')));
-    if(!target) return {ok:false,error:'new_chat_control_missing',started:false};
-    (target.closest('button,[role=button],a')||target).click();
-    return {ok:true,started:true};
-  }
-  return deepseekNewChat();
-})()
-`
-
 const SubmitPromptScript = `
 (() => {
   function deepseekSubmitPrompt() {
@@ -158,6 +163,9 @@ const SubmitPromptScript = `
       .sort((a,b)=>b.r.x-a.r.x);
     const target=candidates[0];
     if(!target) return {ok:false,error:'send_button_missing'};
+    const disabled=target.e.disabled||target.e.getAttribute('aria-disabled')==='true'||
+      /disabled|loading/i.test(String(target.e.className||''));
+    if(disabled) return {ok:false,error:'send_button_not_ready'};
     target.e.click();
     return {ok:true};
   }

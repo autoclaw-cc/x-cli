@@ -108,6 +108,14 @@ func (c *Client) Fill(selector, value string) error {
 	return err
 }
 
+func (c *Client) BringToFront() error {
+	_, err := c.Call("cdp", map[string]any{
+		"method": "Page.bringToFront",
+		"params": map[string]any{},
+	})
+	return err
+}
+
 func (c *Client) Upload(selector string, files []string) error {
 	_, err := c.Call("upload", map[string]any{"selector": selector, "files": files})
 	return err

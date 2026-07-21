@@ -35,7 +35,7 @@ All commands return JSON:
 1. Run `login-status` first. Continue only if `authenticated:true` and `prompt_available:true`.
 2. Run `capabilities` when you need to confirm visible modes such as `chat`, `deepthink`, `web_search`, and `vision`.
 3. Use `chat new` when the task requires a clean conversation. This creates a new visible DeepSeek conversation.
-4. Use `chat ask` for prompt/answer work. Add `--deepthink` and/or `--search` only when needed; both flags require the corresponding visible control to exist and become enabled.
-5. Add repeatable `--file PATH` and `--image PATH` flags for explicit local attachments. The CLI validates each path, opens the visible upload control, and sends the files through Kimi WebBridge.
+4. Use `chat ask` for prompt/answer work. Add `--deepthink` and/or `--search` only when needed; the CLI waits until each corresponding visible toggle reports `aria-pressed=true`.
+5. Add repeatable `--file PATH` and `--image PATH` flags for explicit local attachments. The CLI validates each path, selects and verifies vision mode for images, opens the visible upload control, and waits for the send control before submitting through Kimi WebBridge.
 6. The command waits until the newest assistant answer is unchanged across stable samples before returning. Increase the root `--timeout` for DeepThink, web search, or large attachments.
 7. Use `--output` for local persistence when the user asks to save an answer. Keep generated files inside the active project or `.codex\tmp` unless the user specifies another safe location.

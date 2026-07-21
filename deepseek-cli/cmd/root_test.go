@@ -123,7 +123,7 @@ func TestChatAskUsesWebBridgeCommands(t *testing.T) {
 	if !envelope.OK || envelope.Data.Browser != "webbridge" || envelope.Data.Prompt != "hello" || envelope.Data.Answer != "stable answer" {
 		t.Fatalf("envelope = %#v", envelope)
 	}
-	assertActions(t, *actions, []string{"find_tab", "evaluate", "fill", "evaluate", "evaluate", "evaluate"})
+	assertActions(t, *actions, []string{"find_tab", "cdp", "evaluate", "fill", "evaluate", "evaluate", "evaluate"})
 }
 
 func TestChatAskCanEnableModesAndUploadFiles(t *testing.T) {
@@ -162,16 +162,16 @@ func TestChatAskCanEnableModesAndUploadFiles(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
 		t.Fatalf("invalid json: %v\n%s", err, stdout.String())
 	}
-	if !envelope.OK || !containsString(envelope.Data.Modes, "deepthink") || !containsString(envelope.Data.Modes, "web_search") {
+	if !envelope.OK || !containsString(envelope.Data.Modes, "deepthink") || !containsString(envelope.Data.Modes, "web_search") || !containsString(envelope.Data.Modes, "vision") {
 		t.Fatalf("envelope = %#v", envelope)
 	}
 	if len(envelope.Data.Files) != 2 {
 		t.Fatalf("files = %#v", envelope.Data.Files)
 	}
-	assertActions(t, *actions, []string{"find_tab", "evaluate", "evaluate", "upload", "evaluate", "fill", "evaluate", "evaluate", "evaluate"})
+	assertActions(t, *actions, []string{"find_tab", "cdp", "evaluate", "evaluate", "evaluate", "evaluate", "evaluate", "evaluate", "evaluate", "upload", "evaluate", "fill", "evaluate", "evaluate", "evaluate", "evaluate"})
 }
 
-func TestChatNewUsesWebBridgeNewConversationControl(t *testing.T) {
+func TestChatNewNavigatesTheActiveDeepSeekTabToANewConversation(t *testing.T) {
 	server, actions := fakeWebBridge(t)
 	defer server.Close()
 
@@ -192,13 +192,15 @@ func TestChatNewUsesWebBridgeNewConversationControl(t *testing.T) {
 	if !envelope.OK || !envelope.Data.Started {
 		t.Fatalf("envelope = %#v", envelope)
 	}
-	assertActions(t, *actions, []string{"find_tab", "evaluate"})
+	assertActions(t, *actions, []string{"find_tab", "cdp", "navigate"})
 }
 
 func fakeWebBridge(t *testing.T) (*httptest.Server, *[]string) {
 	t.Helper()
 	actions := []string{}
 	answerReads := 0
+	uploadSeen := false
+	submitAttempts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
@@ -214,23 +216,45 @@ func fakeWebBridge(t *testing.T) (*httptest.Server, *[]string) {
 			}
 			actions = append(actions, req.Action)
 			switch req.Action {
-			case "find_tab", "navigate", "fill":
+			case "find_tab":
+				if active, _ := req.Args["active"].(bool); !active {
+					t.Fatalf("find_tab must prefer the active DeepSeek tab: %#v", req.Args)
+				}
+				writeBridgeData(w, map[string]any{"success": true})
+			case "navigate", "fill", "cdp":
 				writeBridgeData(w, map[string]any{"success": true})
 			case "upload":
 				files, _ := req.Args["files"].([]any)
 				if len(files) == 0 {
 					t.Fatalf("upload missing files: %#v", req.Args)
 				}
+				uploadSeen = true
 				writeBridgeData(w, map[string]any{"success": true, "fileCount": len(files)})
 			case "evaluate":
 				code, _ := req.Args["code"].(string)
 				switch {
 				case strings.Contains(code, "deepseekSetModes"):
-					writeBridgeEvaluate(w, map[string]any{"ok": true, "enabled": []string{"deepthink", "web_search"}})
+					if strings.Contains(code, "|on") {
+						t.Fatalf("mode active detection must not match the 'on' inside button: %s", code)
+					}
+					enabled := []string{}
+					if strings.Contains(code, "deepthink:true") {
+						enabled = append(enabled, "deepthink")
+					}
+					if strings.Contains(code, "web_search:true") {
+						enabled = append(enabled, "web_search")
+					}
+					if strings.Contains(code, "vision:true") {
+						enabled = append(enabled, "vision")
+					}
+					if containsString(enabled, "vision") && (!strings.Contains(code, "data-model-type=\"vision\"") || !strings.Contains(code, "[aria-pressed]")) {
+						t.Fatalf("mode script must use semantic DeepSeek controls: %s", code)
+					}
+					writeBridgeEvaluate(w, map[string]any{"ok": true, "enabled": enabled})
+				case strings.Contains(code, "deepseekModeReady") || strings.Contains(code, "deepseekVisionModeReady"):
+					writeBridgeEvaluate(w, map[string]any{"ready": true})
 				case strings.Contains(code, "deepseekPrepareUpload"):
 					writeBridgeEvaluate(w, map[string]any{"ok": true, "selector": "input[type=file]"})
-				case strings.Contains(code, "deepseekNewChat"):
-					writeBridgeEvaluate(w, map[string]any{"ok": true, "started": true})
 				case strings.Contains(code, "ds-assistant-message-main-content"):
 					answerReads++
 					count := 0
@@ -241,6 +265,11 @@ func fakeWebBridge(t *testing.T) (*httptest.Server, *[]string) {
 					}
 					writeBridgeEvaluate(w, map[string]any{"count": count, "latest": answer})
 				case strings.Contains(code, "deepseekSubmitPrompt"):
+					if uploadSeen && submitAttempts == 0 {
+						submitAttempts++
+						writeBridgeEvaluate(w, map[string]any{"ok": false, "error": "send_button_not_ready"})
+						return
+					}
 					writeBridgeEvaluate(w, map[string]any{"ok": true})
 				default:
 					writeBridgeEvaluate(w, map[string]any{

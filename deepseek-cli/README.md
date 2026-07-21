@@ -42,5 +42,9 @@ Successful commands print `{"ok":true,"data":...}`. Failures print
 - `chat ask` creates a normal DeepSeek chat interaction in the isolated account.
 - `chat new` starts a new conversation. `--deepthink`, `--search`, `--file`, and
   `--image` operate only through visible controls and Kimi WebBridge upload.
+- Chat workflows bring the selected DeepSeek tab to the foreground, wait for
+  each requested mode to report its real selected state, and wait for the send
+  control to become enabled before submitting. `--image` automatically selects
+  DeepSeek vision mode before uploading.
 - Attached files are read only from paths explicitly supplied on the command
   line. The CLI does not scan directories or retain file contents.
