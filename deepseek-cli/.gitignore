@@ -1,0 +1,14 @@
+# Build output
+/deepseek-cli
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+*.out
+
+# Local temporary artifacts
+/.codex/
+/tmp/
