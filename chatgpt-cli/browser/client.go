@@ -116,6 +116,14 @@ func (c *Client) Click(selector string) error {
 	return err
 }
 
+func (c *Client) BringToFront() error {
+	_, err := c.Call("cdp", map[string]any{
+		"method": "Page.bringToFront",
+		"params": map[string]any{},
+	})
+	return err
+}
+
 func (c *Client) CloseSession() error {
 	_, err := c.Call("close_session", map[string]any{})
 	return err

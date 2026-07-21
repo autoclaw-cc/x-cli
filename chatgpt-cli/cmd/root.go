@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -57,7 +59,193 @@ func (a *app) rootCommand() *cobra.Command {
 	root.PersistentFlags().DurationVar(&a.timeout, "timeout", a.timeout, "maximum workflow wait")
 	root.AddCommand(a.loginStatusCommand())
 	root.AddCommand(a.capabilitiesCommand())
+	root.AddCommand(a.chatCommand())
 	return root
+}
+
+func (a *app) chatCommand() *cobra.Command {
+	chat := &cobra.Command{
+		Use:   "chat",
+		Short: "Run ChatGPT chat and research workflows",
+	}
+	chat.AddCommand(a.chatNewCommand())
+	chat.AddCommand(a.chatAskCommand())
+	return chat
+}
+
+func (a *app) chatNewCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "new",
+		Short: "Open a fresh ChatGPT conversation tab",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := a.readyBridgeClient()
+			if err != nil {
+				return err
+			}
+			if err := a.ensureChatGPTTab(client); err != nil {
+				return err
+			}
+			return output.Success(a.out, map[string]any{
+				"browser": "webbridge",
+				"started": true,
+				"url":     "https://chatgpt.com/",
+			})
+		},
+	}
+}
+
+func (a *app) chatAskCommand() *cobra.Command {
+	var prompt string
+	var outputPath string
+	var search bool
+	var deepResearch bool
+	ask := &cobra.Command{
+		Use:   "ask",
+		Short: "Ask ChatGPT and wait for a stable answer",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			prompt = strings.TrimSpace(prompt)
+			if prompt == "" {
+				return &commandError{code: "prompt_required", message: "--prompt is required"}
+			}
+			if search && deepResearch {
+				return &commandError{code: "modes_conflict", message: "--search and --deep-research are mutually exclusive"}
+			}
+			client, err := a.readyBridgeClient()
+			if err != nil {
+				return err
+			}
+			defer func() { _ = client.CloseSession() }()
+			result, err := a.askChatGPT(client, prompt, search, deepResearch)
+			if err != nil {
+				return &commandError{code: "chatgpt_chat_failed", message: err.Error()}
+			}
+			data := map[string]any{
+				"browser":        "webbridge",
+				"prompt":         prompt,
+				"answer":         result.answer,
+				"citations":      result.citations,
+				"mode":           result.mode,
+				"stable_samples": result.stableSamples,
+			}
+			if outputPath != "" {
+				if err := writeTextOutput(outputPath, result.answer); err != nil {
+					return &commandError{code: "write_output_failed", message: err.Error()}
+				}
+				data["output"] = outputPath
+			}
+			return output.Success(a.out, data)
+		},
+	}
+	ask.Flags().StringVar(&prompt, "prompt", "", "prompt text to send to ChatGPT")
+	ask.Flags().StringVar(&outputPath, "output", "", "optional local path for the answer text")
+	ask.Flags().BoolVar(&search, "search", false, "enable ChatGPT web search")
+	ask.Flags().BoolVar(&deepResearch, "deep-research", false, "enable ChatGPT Deep Research")
+	return ask
+}
+
+type chatResult struct {
+	answer        string
+	citations     []chatgpt.Citation
+	mode          string
+	stableSamples int
+}
+
+func (a *app) askChatGPT(client *browser.Client, prompt string, search, deepResearch bool) (chatResult, error) {
+	if err := a.ensureChatGPTTab(client); err != nil {
+		return chatResult{}, err
+	}
+	mode := "chat"
+	if search {
+		mode = "web_search"
+	}
+	if deepResearch {
+		mode = "deep_research"
+	}
+	if mode != "chat" {
+		var selected chatgpt.ModeResult
+		if err := client.EvaluateValue(chatgpt.SelectModeScript(mode), &selected); err != nil {
+			return chatResult{}, err
+		}
+		if !selected.OK {
+			return chatResult{}, fmt.Errorf("select %s: %s", mode, selected.Error)
+		}
+	}
+	var baseline chatgpt.AnswerSnapshot
+	if err := client.EvaluateValue(chatgpt.AnswerSnapshotScript, &baseline); err != nil {
+		return chatResult{}, err
+	}
+	if err := client.Fill("#prompt-textarea", prompt); err != nil {
+		return chatResult{}, err
+	}
+	if err := a.waitForSubmit(client); err != nil {
+		return chatResult{}, err
+	}
+	answer, stable, citations, err := a.waitForAnswer(client, baseline.Count)
+	if err != nil {
+		return chatResult{}, err
+	}
+	return chatResult{answer: answer, citations: citations, mode: mode, stableSamples: stable}, nil
+}
+
+func (a *app) waitForSubmit(client *browser.Client) error {
+	deadline := time.Now().Add(a.timeout)
+	for time.Now().Before(deadline) {
+		var result chatgpt.SubmitResult
+		if err := client.EvaluateValue(chatgpt.SubmitPromptScript, &result); err != nil {
+			return err
+		}
+		if result.OK {
+			return nil
+		}
+		if result.Error != "send_button_not_ready" {
+			return fmt.Errorf("submit prompt: %s", result.Error)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	return fmt.Errorf("timed out waiting for ChatGPT send button")
+}
+
+func (a *app) waitForAnswer(client *browser.Client, baselineCount int) (string, int, []chatgpt.Citation, error) {
+	deadline := time.Now().Add(a.timeout)
+	previous := ""
+	stable := 0
+	var citations []chatgpt.Citation
+	for time.Now().Before(deadline) {
+		var snapshot chatgpt.AnswerSnapshot
+		if err := client.EvaluateValue(chatgpt.AnswerSnapshotScript, &snapshot); err != nil {
+			return "", 0, nil, err
+		}
+		answer := strings.TrimSpace(snapshot.Latest)
+		if snapshot.Count > baselineCount && answer != "" && !snapshot.Streaming {
+			if answer == previous {
+				stable++
+			} else {
+				previous = answer
+				stable = 1
+			}
+			citations = snapshot.Citations
+			if stable >= 3 {
+				return answer, stable, citations, nil
+			}
+		} else {
+			previous = ""
+			stable = 0
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return "", 0, nil, fmt.Errorf("timed out waiting for ChatGPT answer")
+}
+
+func writeTextOutput(path, text string) error {
+	dir := filepath.Dir(path)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+	return os.WriteFile(path, []byte(text), 0o644)
 }
 
 func (a *app) loginStatusCommand() *cobra.Command {
@@ -130,6 +318,9 @@ func (a *app) inspectPage(client *browser.Client) (chatgpt.PageState, error) {
 
 func (a *app) ensureChatGPTTab(client *browser.Client) error {
 	if err := client.Navigate("https://chatgpt.com/", true); err != nil {
+		return &commandError{code: "chatgpt_page_unavailable", message: err.Error()}
+	}
+	if err := client.BringToFront(); err != nil {
 		return &commandError{code: "chatgpt_page_unavailable", message: err.Error()}
 	}
 	deadline := time.Now().Add(a.timeout)

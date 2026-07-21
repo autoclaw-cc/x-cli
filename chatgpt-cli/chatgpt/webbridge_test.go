@@ -15,3 +15,9 @@ func TestSnapshotScriptWaitsForCompleteToolMenuWithoutReclicking(t *testing.T) {
 		t.Fatalf("SnapshotScript must click the menu exactly once")
 	}
 }
+
+func TestReadyScriptWaitsForHydratedComposerControls(t *testing.T) {
+	if !strings.Contains(ReadyScript, "querySelectorAll('button').length>=3") {
+		t.Fatalf("ReadyScript does not wait for hydrated composer controls")
+	}
+}

@@ -50,6 +50,9 @@ func TestCommandsCarrySessionAndArguments(t *testing.T) {
 	if err := client.Navigate("https://chatgpt.com/", true); err != nil {
 		t.Fatal(err)
 	}
+	if err := client.BringToFront(); err != nil {
+		t.Fatal(err)
+	}
 	if err := client.Fill("#prompt-textarea", "hello"); err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +67,7 @@ func TestCommandsCarrySessionAndArguments(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(calls) != 6 {
+	if len(calls) != 7 {
 		t.Fatalf("calls = %d", len(calls))
 	}
 	for _, call := range calls {
@@ -72,8 +75,8 @@ func TestCommandsCarrySessionAndArguments(t *testing.T) {
 			t.Fatalf("session = %#v", call["session"])
 		}
 	}
-	if calls[0]["action"] != "find_tab" || calls[5]["action"] != "close_session" {
-		t.Fatalf("actions = %#v ... %#v", calls[0]["action"], calls[5]["action"])
+	if calls[0]["action"] != "find_tab" || calls[2]["action"] != "cdp" || calls[6]["action"] != "close_session" {
+		t.Fatalf("actions = %#v", calls)
 	}
 }
 
