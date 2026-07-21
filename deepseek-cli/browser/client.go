@@ -108,6 +108,11 @@ func (c *Client) Fill(selector, value string) error {
 	return err
 }
 
+func (c *Client) Upload(selector string, files []string) error {
+	_, err := c.Call("upload", map[string]any{"selector": selector, "files": files})
+	return err
+}
+
 func (c *Client) EvaluateValue(code string, v any) error {
 	raw, err := c.Call("evaluate", map[string]any{"code": code})
 	if err != nil {

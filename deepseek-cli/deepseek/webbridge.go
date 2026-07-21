@@ -1,5 +1,7 @@
 package deepseek
 
+import "fmt"
+
 type AnswerSnapshot struct {
 	Count  int    `json:"count"`
 	Latest string `json:"latest"`
@@ -8,6 +10,25 @@ type AnswerSnapshot struct {
 type SubmitResult struct {
 	OK    bool   `json:"ok"`
 	Error string `json:"error"`
+}
+
+type ModeResult struct {
+	OK      bool     `json:"ok"`
+	Error   string   `json:"error"`
+	Enabled []string `json:"enabled"`
+	Clicked []string `json:"clicked"`
+}
+
+type UploadTargetResult struct {
+	OK       bool   `json:"ok"`
+	Error    string `json:"error"`
+	Selector string `json:"selector"`
+}
+
+type NewChatResult struct {
+	OK      bool   `json:"ok"`
+	Error   string `json:"error"`
+	Started bool   `json:"started"`
 }
 
 const SnapshotScript = `
@@ -41,6 +62,64 @@ const SnapshotScript = `
 })()
 `
 
+func SetModesScript(deepthink, search bool) string {
+	return fmt.Sprintf(`
+(() => {
+  function deepseekSetModes() {
+    const desired={deepthink:%t,web_search:%t};
+    const txt=s=>(s||'').replace(/\s+/g,' ').trim();
+    const visible=e=>!!(e&&(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
+    const controls=[...document.querySelectorAll('button,[role=button],[role=checkbox],[aria-pressed],div,span')]
+      .filter(e=>visible(e));
+    const specs={
+      deepthink:[/深度思考/i,/DeepThink/i,/Deep Think/i,/\bR1\b/i],
+      web_search:[/智能搜索/i,/联网搜索/i,/联网/i,/\bSearch\b/i,/搜索/i]
+    };
+    const active=e=>{
+      const attrs=[e.getAttribute('aria-pressed'),e.getAttribute('aria-checked'),e.getAttribute('data-state')].join(' ').toLowerCase();
+      const cls=String(e.className||'').toLowerCase();
+      const label=(txt(e.innerText||e.textContent)+' '+(e.getAttribute('aria-label')||'')).toLowerCase();
+      return /\btrue\b|checked|selected|active|on/.test(attrs+' '+cls) || /已开启|开启中|enabled|active/.test(label);
+    };
+    const actionable=e=>e.closest('button,[role=button],[role=checkbox]')||e;
+    const enabled=[],clicked=[],missing=[];
+    for (const [key,want] of Object.entries(desired)) {
+      if(!want) continue;
+      const found=controls.find(e=>specs[key].some(re=>re.test(txt(e.innerText||e.textContent)+' '+(e.getAttribute('aria-label')||''))));
+      if(!found){missing.push(key);continue;}
+      const target=actionable(found);
+      if(!active(target)){target.click();clicked.push(key);}
+      enabled.push(key);
+    }
+    if(missing.length) return {ok:false,error:'mode_control_missing:'+missing.join(','),enabled,clicked};
+    return {ok:true,enabled,clicked};
+  }
+  return deepseekSetModes();
+})()
+`, deepthink, search)
+}
+
+const PrepareUploadScript = `
+(async () => {
+  function deepseekPrepareUpload() {
+    const txt=s=>(s||'').replace(/\s+/g,' ').trim();
+    const visible=e=>!!(e&&(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
+    const selector='input[type=file]';
+    let input=document.querySelector(selector);
+    if(input) return {ok:true,selector};
+    const control=[...document.querySelectorAll('button,[role=button],div,span')]
+      .filter(visible)
+      .find(e=>/上传|文件|Attach|Upload|File/i.test(txt(e.innerText||e.textContent)+' '+(e.getAttribute('aria-label')||'')));
+    if(control) (control.closest('button,[role=button]')||control).click();
+    return {ok:!!document.querySelector(selector),selector,error:document.querySelector(selector)?'':'file_input_missing'};
+  }
+  let result=deepseekPrepareUpload();
+  if(result.ok) return result;
+  await new Promise(resolve=>setTimeout(resolve,250));
+  return deepseekPrepareUpload();
+})()
+`
+
 const AnswerSnapshotScript = `
 (() => {
   const visible=e=>!!(e&&(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
@@ -48,6 +127,22 @@ const AnswerSnapshotScript = `
   const answers=[...document.querySelectorAll('.ds-assistant-message-main-content')]
     .filter(visible).map(e=>txt(e.innerText||e.textContent)).filter(Boolean);
   return {count:answers.length,latest:answers[answers.length-1]||''};
+})()
+`
+
+const NewChatScript = `
+(() => {
+  function deepseekNewChat() {
+    const txt=s=>(s||'').replace(/\s+/g,' ').trim();
+    const visible=e=>!!(e&&(e.offsetWidth||e.offsetHeight||e.getClientRects().length));
+    const target=[...document.querySelectorAll('button,[role=button],a,div,span')]
+      .filter(visible)
+      .find(e=>/新对话|新建对话|New chat|New conversation/i.test(txt(e.innerText||e.textContent)+' '+(e.getAttribute('aria-label')||'')));
+    if(!target) return {ok:false,error:'new_chat_control_missing',started:false};
+    (target.closest('button,[role=button],a')||target).click();
+    return {ok:true,started:true};
+  }
+  return deepseekNewChat();
 })()
 `
 

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -124,6 +126,75 @@ func TestChatAskUsesWebBridgeCommands(t *testing.T) {
 	assertActions(t, *actions, []string{"find_tab", "evaluate", "fill", "evaluate", "evaluate", "evaluate"})
 }
 
+func TestChatAskCanEnableModesAndUploadFiles(t *testing.T) {
+	server, actions := fakeWebBridge(t)
+	defer server.Close()
+
+	attachment := filepath.Join(t.TempDir(), "case.txt")
+	image := filepath.Join(t.TempDir(), "diagram.png")
+	if err := os.WriteFile(attachment, []byte("case"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(image, []byte("png"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := Execute([]string{
+		"--webbridge-url", server.URL,
+		"chat", "ask",
+		"--prompt", "hello",
+		"--deepthink",
+		"--search",
+		"--file", attachment,
+		"--image", image,
+	}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit code = %d, stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+	}
+	var envelope struct {
+		OK   bool `json:"ok"`
+		Data struct {
+			Modes []string `json:"modes"`
+			Files []string `json:"files"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
+		t.Fatalf("invalid json: %v\n%s", err, stdout.String())
+	}
+	if !envelope.OK || !containsString(envelope.Data.Modes, "deepthink") || !containsString(envelope.Data.Modes, "web_search") {
+		t.Fatalf("envelope = %#v", envelope)
+	}
+	if len(envelope.Data.Files) != 2 {
+		t.Fatalf("files = %#v", envelope.Data.Files)
+	}
+	assertActions(t, *actions, []string{"find_tab", "evaluate", "evaluate", "upload", "evaluate", "fill", "evaluate", "evaluate", "evaluate"})
+}
+
+func TestChatNewUsesWebBridgeNewConversationControl(t *testing.T) {
+	server, actions := fakeWebBridge(t)
+	defer server.Close()
+
+	var stdout, stderr bytes.Buffer
+	code := Execute([]string{"--webbridge-url", server.URL, "chat", "new"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit code = %d, stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+	}
+	var envelope struct {
+		OK   bool `json:"ok"`
+		Data struct {
+			Started bool `json:"started"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
+		t.Fatalf("invalid json: %v\n%s", err, stdout.String())
+	}
+	if !envelope.OK || !envelope.Data.Started {
+		t.Fatalf("envelope = %#v", envelope)
+	}
+	assertActions(t, *actions, []string{"find_tab", "evaluate"})
+}
+
 func fakeWebBridge(t *testing.T) (*httptest.Server, *[]string) {
 	t.Helper()
 	actions := []string{}
@@ -145,9 +216,21 @@ func fakeWebBridge(t *testing.T) (*httptest.Server, *[]string) {
 			switch req.Action {
 			case "find_tab", "navigate", "fill":
 				writeBridgeData(w, map[string]any{"success": true})
+			case "upload":
+				files, _ := req.Args["files"].([]any)
+				if len(files) == 0 {
+					t.Fatalf("upload missing files: %#v", req.Args)
+				}
+				writeBridgeData(w, map[string]any{"success": true, "fileCount": len(files)})
 			case "evaluate":
 				code, _ := req.Args["code"].(string)
 				switch {
+				case strings.Contains(code, "deepseekSetModes"):
+					writeBridgeEvaluate(w, map[string]any{"ok": true, "enabled": []string{"deepthink", "web_search"}})
+				case strings.Contains(code, "deepseekPrepareUpload"):
+					writeBridgeEvaluate(w, map[string]any{"ok": true, "selector": "input[type=file]"})
+				case strings.Contains(code, "deepseekNewChat"):
+					writeBridgeEvaluate(w, map[string]any{"ok": true, "started": true})
 				case strings.Contains(code, "ds-assistant-message-main-content"):
 					answerReads++
 					count := 0

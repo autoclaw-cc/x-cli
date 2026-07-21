@@ -117,12 +117,17 @@ func (a *app) chatCommand() *cobra.Command {
 		Short: "Run DeepSeek chat workflows through the isolated Chrome page",
 	}
 	chat.AddCommand(a.chatAskCommand())
+	chat.AddCommand(a.chatNewCommand())
 	return chat
 }
 
 func (a *app) chatAskCommand() *cobra.Command {
 	var prompt string
 	var outputPath string
+	var deepthink bool
+	var search bool
+	var files []string
+	var images []string
 	ask := &cobra.Command{
 		Use:   "ask",
 		Short: "Ask DeepSeek and wait for a stable assistant answer",
@@ -131,7 +136,12 @@ func (a *app) chatAskCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, err := a.askDeepSeek(client, prompt)
+			result, err := a.askDeepSeek(client, prompt, askOptions{
+				deepthink: deepthink,
+				search:    search,
+				files:     files,
+				images:    images,
+			})
 			if err != nil {
 				return &commandError{code: "deepseek_chat_failed", message: err.Error()}
 			}
@@ -140,6 +150,8 @@ func (a *app) chatAskCommand() *cobra.Command {
 				"prompt":         result.prompt,
 				"answer":         result.answer,
 				"stable_samples": result.stableSamples,
+				"modes":          result.modes,
+				"files":          result.files,
 			}
 			if outputPath != "" {
 				if err := writeTextOutput(outputPath, result.answer); err != nil {
@@ -152,8 +164,42 @@ func (a *app) chatAskCommand() *cobra.Command {
 	}
 	ask.Flags().StringVar(&prompt, "prompt", "", "prompt text to send to DeepSeek")
 	ask.Flags().StringVar(&outputPath, "output", "", "optional local path for the assistant answer text")
+	ask.Flags().BoolVar(&deepthink, "deepthink", false, "enable DeepSeek deep thinking mode before sending")
+	ask.Flags().BoolVar(&search, "search", false, "enable DeepSeek web search mode before sending")
+	ask.Flags().StringArrayVar(&files, "file", nil, "local file path to attach before sending; repeatable")
+	ask.Flags().StringArrayVar(&images, "image", nil, "local image path to attach before sending; repeatable")
 	_ = ask.MarkFlagRequired("prompt")
 	return ask
+}
+
+func (a *app) chatNewCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "new",
+		Short: "Start a new DeepSeek chat through the visible page",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := a.readyBridgeClient()
+			if err != nil {
+				return err
+			}
+			if err := a.ensureDeepSeekTab(client); err != nil {
+				return err
+			}
+			var result deepseek.NewChatResult
+			if err := client.EvaluateValue(deepseek.NewChatScript, &result); err != nil {
+				return &commandError{code: "deepseek_new_chat_failed", message: err.Error()}
+			}
+			if !result.OK {
+				if result.Error == "" {
+					result.Error = "new_chat_failed"
+				}
+				return &commandError{code: "deepseek_new_chat_failed", message: result.Error}
+			}
+			return output.Success(a.out, map[string]any{
+				"browser": "webbridge",
+				"started": result.Started,
+			})
+		},
+	}
 }
 
 func writeTextOutput(path, text string) error {
@@ -170,6 +216,15 @@ type askResult struct {
 	prompt        string
 	answer        string
 	stableSamples int
+	modes         []string
+	files         []string
+}
+
+type askOptions struct {
+	deepthink bool
+	search    bool
+	files     []string
+	images    []string
 }
 
 func (a *app) readyBridgeClient() (*browser.Client, error) {
@@ -211,12 +266,20 @@ func (a *app) ensureDeepSeekTab(client *browser.Client) error {
 	return nil
 }
 
-func (a *app) askDeepSeek(client *browser.Client, prompt string) (askResult, error) {
+func (a *app) askDeepSeek(client *browser.Client, prompt string, options askOptions) (askResult, error) {
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" {
 		return askResult{}, fmt.Errorf("prompt is required")
 	}
 	if err := a.ensureDeepSeekTab(client); err != nil {
+		return askResult{}, err
+	}
+	modes, err := a.setDeepSeekModes(client, options)
+	if err != nil {
+		return askResult{}, err
+	}
+	attached, err := a.uploadDeepSeekFiles(client, options)
+	if err != nil {
 		return askResult{}, err
 	}
 	var baseline deepseek.AnswerSnapshot
@@ -240,7 +303,57 @@ func (a *app) askDeepSeek(client *browser.Client, prompt string) (askResult, err
 	if err != nil {
 		return askResult{}, err
 	}
-	return askResult{prompt: prompt, answer: answer, stableSamples: stable}, nil
+	return askResult{prompt: prompt, answer: answer, stableSamples: stable, modes: modes, files: attached}, nil
+}
+
+func (a *app) setDeepSeekModes(client *browser.Client, options askOptions) ([]string, error) {
+	if !options.deepthink && !options.search {
+		return []string{}, nil
+	}
+	var result deepseek.ModeResult
+	if err := client.EvaluateValue(deepseek.SetModesScript(options.deepthink, options.search), &result); err != nil {
+		return nil, err
+	}
+	if !result.OK {
+		if result.Error == "" {
+			result.Error = "mode_set_failed"
+		}
+		return nil, fmt.Errorf("%s", result.Error)
+	}
+	return result.Enabled, nil
+}
+
+func (a *app) uploadDeepSeekFiles(client *browser.Client, options askOptions) ([]string, error) {
+	paths := append([]string{}, options.files...)
+	paths = append(paths, options.images...)
+	if len(paths) == 0 {
+		return []string{}, nil
+	}
+	for _, path := range paths {
+		if strings.TrimSpace(path) == "" {
+			return nil, fmt.Errorf("empty attachment path")
+		}
+		if _, err := os.Stat(path); err != nil {
+			return nil, fmt.Errorf("attachment unavailable %s: %w", path, err)
+		}
+	}
+	var target deepseek.UploadTargetResult
+	if err := client.EvaluateValue(deepseek.PrepareUploadScript, &target); err != nil {
+		return nil, err
+	}
+	if !target.OK {
+		if target.Error == "" {
+			target.Error = "file_input_missing"
+		}
+		return nil, fmt.Errorf("%s", target.Error)
+	}
+	if target.Selector == "" {
+		target.Selector = "input[type=file]"
+	}
+	if err := client.Upload(target.Selector, paths); err != nil {
+		return nil, err
+	}
+	return paths, nil
 }
 
 func (a *app) waitForStableAnswer(client *browser.Client, baselineCount int) (string, int, error) {
