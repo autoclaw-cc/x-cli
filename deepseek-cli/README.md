@@ -1,8 +1,9 @@
 # deepseek-cli
 
 `deepseek-cli` drives DeepSeek Web through the user's already signed-in,
-isolated Chrome session. It does not automate login and must not store cookies,
-authorization headers, account identity, or private session data.
+isolated Chrome session via Kimi WebBridge. It does not automate login and
+must not store cookies, authorization headers, account identity, or private
+session data.
 
 Current slice:
 
@@ -13,13 +14,13 @@ Current slice:
 - `chat ask`: sends a prompt, waits until the newest assistant answer is stable,
   and can save that answer to a local text file.
 
-Use `--cdp-url http://127.0.0.1:9223` with the isolated DeepSeek Chrome profile
-launched with remote debugging enabled.
+Use `--webbridge-url http://127.0.0.1:10086` with Kimi WebBridge running and
+the browser extension connected to the isolated DeepSeek Chrome profile.
 
 ```text
-deepseek-cli --cdp-url http://127.0.0.1:9223 login-status
-deepseek-cli --cdp-url http://127.0.0.1:9223 capabilities
-deepseek-cli --cdp-url http://127.0.0.1:9223 chat ask --prompt "Reply with exactly: lapis" --output .codex/tmp/deepseek-answer.txt
+deepseek-cli --webbridge-url http://127.0.0.1:10086 login-status
+deepseek-cli --webbridge-url http://127.0.0.1:10086 capabilities
+deepseek-cli --webbridge-url http://127.0.0.1:10086 chat ask --prompt "Reply with exactly: lapis" --output .codex/tmp/deepseek-answer.txt
 ```
 
 Successful commands print `{"ok":true,"data":...}`. Failures print
@@ -29,9 +30,9 @@ Successful commands print `{"ok":true,"data":...}`. Failures print
 
 - Login remains manual.
 - CAPTCHA, 2FA, payment, account settings, and credentials are never automated.
-- The CDP path inspects visible DOM only. It never reads cookies, local storage,
-  headers, or account identity, and it does not output or persist existing
-  private chat titles.
+- The WebBridge path inspects and operates on the visible page only. It never
+  reads cookies, local storage, headers, or account identity, and it does not
+  output or persist existing private chat titles.
 - `chat ask` creates a normal DeepSeek chat interaction in the isolated account.
 - Future file, image, mode-selection, and conversation-management commands must
   be implemented only after live site archaeology identifies the exact visible

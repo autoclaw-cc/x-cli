@@ -44,6 +44,9 @@ func (c *Client) Status() (*Status, error) {
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("daemon status returned %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
 	var status Status
 	if err := json.Unmarshal(body, &status); err != nil {
 		return nil, fmt.Errorf("parse daemon status: %w", err)
@@ -62,6 +65,10 @@ func (c *Client) Call(action string, args map[string]any) (json.RawMessage, erro
 		return nil, fmt.Errorf("daemon unreachable at %s: %w", c.baseURL, err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("daemon command %s returned %s: %s", action, resp.Status, strings.TrimSpace(string(body)))
+	}
 	var envelope struct {
 		OK    bool            `json:"ok"`
 		Data  json.RawMessage `json:"data"`
@@ -80,4 +87,44 @@ func (c *Client) Call(action string, args map[string]any) (json.RawMessage, erro
 		return nil, fmt.Errorf("daemon returned ok=false without error detail")
 	}
 	return envelope.Data, nil
+}
+
+func (c *Client) FindTab(url string, active bool) error {
+	_, err := c.Call("find_tab", map[string]any{"url": url, "active": active})
+	return err
+}
+
+func (c *Client) Navigate(url string, newTab bool) error {
+	_, err := c.Call("navigate", map[string]any{
+		"url":         url,
+		"newTab":      newTab,
+		"group_title": "deepseek-cli",
+	})
+	return err
+}
+
+func (c *Client) Fill(selector, value string) error {
+	_, err := c.Call("fill", map[string]any{"selector": selector, "value": value})
+	return err
+}
+
+func (c *Client) EvaluateValue(code string, v any) error {
+	raw, err := c.Call("evaluate", map[string]any{"code": code})
+	if err != nil {
+		return err
+	}
+	var wrap struct {
+		Type  string          `json:"type"`
+		Value json.RawMessage `json:"value"`
+	}
+	if err := json.Unmarshal(raw, &wrap); err != nil {
+		return fmt.Errorf("parse evaluate wrapper: %w", err)
+	}
+	if len(wrap.Value) == 0 {
+		return fmt.Errorf("evaluate returned no value (type=%s)", wrap.Type)
+	}
+	if err := json.Unmarshal(wrap.Value, v); err != nil {
+		return fmt.Errorf("parse evaluate value: %w", err)
+	}
+	return nil
 }

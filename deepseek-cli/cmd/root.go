@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -19,7 +19,6 @@ type app struct {
 	out          io.Writer
 	errOut       io.Writer
 	webbridgeURL string
-	cdpURL       string
 	timeout      time.Duration
 }
 
@@ -35,7 +34,6 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		out:          stdout,
 		errOut:       stderr,
 		webbridgeURL: os.Getenv("KIMI_WEBBRIDGE_URL"),
-		cdpURL:       os.Getenv("DEEPSEEK_CDP_URL"),
 		timeout:      5 * time.Minute,
 	}
 	root := a.rootCommand()
@@ -58,7 +56,6 @@ func (a *app) rootCommand() *cobra.Command {
 		SilenceUsage:  true,
 	}
 	root.PersistentFlags().StringVar(&a.webbridgeURL, "webbridge-url", a.webbridgeURL, "Kimi WebBridge daemon URL")
-	root.PersistentFlags().StringVar(&a.cdpURL, "cdp-url", a.cdpURL, "Chrome DevTools endpoint for the isolated DeepSeek profile")
 	root.PersistentFlags().DurationVar(&a.timeout, "timeout", a.timeout, "maximum workflow wait")
 	root.AddCommand(a.loginStatusCommand())
 	root.AddCommand(a.capabilitiesCommand())
@@ -71,38 +68,20 @@ func (a *app) loginStatusCommand() *cobra.Command {
 		Use:   "login-status",
 		Short: "Check DeepSeek login state without exposing account identity",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if a.cdpURL != "" {
-				state, err := a.inspectDeepSeekPage()
-				if err != nil {
-					return err
-				}
-				return output.Success(a.out, map[string]any{
-					"browser":          "cdp",
-					"authenticated":    state.Authenticated,
-					"prompt_available": state.PromptAvailable,
-					"capabilities":     state.Capabilities,
-					"url":              state.URL,
-				})
-			}
-			client := browser.NewClient(a.webbridgeURL, fmt.Sprintf("deepseek-cli-%d", time.Now().UnixNano()))
-			status, err := client.Status()
+			client, err := a.readyBridgeClient()
 			if err != nil {
-				return &commandError{code: "daemon_unreachable", message: err.Error()}
+				return err
 			}
-			if !status.Running {
-				return &commandError{code: "daemon_not_running", message: "Kimi WebBridge daemon is not running."}
-			}
-			if !status.ExtensionConnected {
-				return &commandError{
-					code:    "extension_not_connected",
-					message: "Kimi WebBridge extension is not connected. Open Chrome with the Kimi WebBridge extension, connect it to the configured daemon, then run this command again.",
-				}
+			state, err := a.inspectDeepSeekPage(client)
+			if err != nil {
+				return err
 			}
 			return output.Success(a.out, map[string]any{
-				"bridge_ready":      true,
-				"daemon_version":    status.Version,
-				"extension_version": status.ExtensionVersion,
-				"login_state":       "unchecked",
+				"browser":          "webbridge",
+				"authenticated":    state.Authenticated,
+				"prompt_available": state.PromptAvailable,
+				"capabilities":     state.Capabilities,
+				"url":              state.URL,
 			})
 		},
 	}
@@ -113,12 +92,16 @@ func (a *app) capabilitiesCommand() *cobra.Command {
 		Use:   "capabilities",
 		Short: "List DeepSeek UI capabilities visible in the isolated Chrome page",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			state, err := a.inspectDeepSeekPage()
+			client, err := a.readyBridgeClient()
+			if err != nil {
+				return err
+			}
+			state, err := a.inspectDeepSeekPage(client)
 			if err != nil {
 				return err
 			}
 			return output.Success(a.out, map[string]any{
-				"browser":          "cdp",
+				"browser":          "webbridge",
 				"authenticated":    state.Authenticated,
 				"prompt_available": state.PromptAvailable,
 				"capabilities":     state.Capabilities,
@@ -144,29 +127,22 @@ func (a *app) chatAskCommand() *cobra.Command {
 		Use:   "ask",
 		Short: "Ask DeepSeek and wait for a stable assistant answer",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if a.cdpURL == "" {
-				return &commandError{
-					code:    "cdp_url_required",
-					message: "Set --cdp-url to the isolated Chrome DevTools endpoint, for example http://127.0.0.1:9223.",
-				}
+			client, err := a.readyBridgeClient()
+			if err != nil {
+				return err
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
-			defer cancel()
-			result, err := browser.NewCDPClient(a.cdpURL).Ask(ctx, prompt, browser.AskOptions{
-				PollInterval:  time.Second,
-				StableSamples: 2,
-			})
+			result, err := a.askDeepSeek(client, prompt)
 			if err != nil {
 				return &commandError{code: "deepseek_chat_failed", message: err.Error()}
 			}
 			data := map[string]any{
-				"browser":        "cdp",
-				"prompt":         result.Prompt,
-				"answer":         result.Answer,
-				"stable_samples": result.StableSamples,
+				"browser":        "webbridge",
+				"prompt":         result.prompt,
+				"answer":         result.answer,
+				"stable_samples": result.stableSamples,
 			}
 			if outputPath != "" {
-				if err := writeTextOutput(outputPath, result.Answer); err != nil {
+				if err := writeTextOutput(outputPath, result.answer); err != nil {
 					return &commandError{code: "write_output_failed", message: err.Error()}
 				}
 				data["output"] = outputPath
@@ -190,20 +166,110 @@ func writeTextOutput(path, text string) error {
 	return os.WriteFile(path, []byte(text), 0o644)
 }
 
-func (a *app) inspectDeepSeekPage() (deepseek.PageState, error) {
-	if a.cdpURL == "" {
-		return deepseek.PageState{}, &commandError{
-			code:    "cdp_url_required",
-			message: "Set --cdp-url to the isolated Chrome DevTools endpoint, for example http://127.0.0.1:9223.",
+type askResult struct {
+	prompt        string
+	answer        string
+	stableSamples int
+}
+
+func (a *app) readyBridgeClient() (*browser.Client, error) {
+	client := browser.NewClient(a.webbridgeURL, fmt.Sprintf("deepseek-cli-%d", time.Now().UnixNano()))
+	status, err := client.Status()
+	if err != nil {
+		return nil, &commandError{code: "daemon_unreachable", message: err.Error()}
+	}
+	if !status.Running {
+		return nil, &commandError{code: "daemon_not_running", message: "Kimi WebBridge daemon is not running."}
+	}
+	if !status.ExtensionConnected {
+		return nil, &commandError{
+			code:    "extension_not_connected",
+			message: "Kimi WebBridge extension is not connected. Open the isolated Chrome profile with the Kimi WebBridge extension, connect it to the configured daemon, then run this command again.",
 		}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
-	defer cancel()
-	snapshot, err := browser.NewCDPClient(a.cdpURL).DeepSeekSnapshot(ctx)
-	if err != nil {
+	return client, nil
+}
+
+func (a *app) inspectDeepSeekPage(client *browser.Client) (deepseek.PageState, error) {
+	if err := a.ensureDeepSeekTab(client); err != nil {
+		return deepseek.PageState{}, err
+	}
+	var snapshot deepseek.PageSnapshot
+	if err := client.EvaluateValue(deepseek.SnapshotScript, &snapshot); err != nil {
 		return deepseek.PageState{}, &commandError{code: "deepseek_page_unavailable", message: err.Error()}
 	}
 	return deepseek.AnalyzePage(snapshot), nil
+}
+
+func (a *app) ensureDeepSeekTab(client *browser.Client) error {
+	if err := client.FindTab("https://chat.deepseek.com/", true); err == nil {
+		return nil
+	}
+	if err := client.Navigate("https://chat.deepseek.com/", true); err != nil {
+		return &commandError{code: "deepseek_page_unavailable", message: err.Error()}
+	}
+	return nil
+}
+
+func (a *app) askDeepSeek(client *browser.Client, prompt string) (askResult, error) {
+	prompt = strings.TrimSpace(prompt)
+	if prompt == "" {
+		return askResult{}, fmt.Errorf("prompt is required")
+	}
+	if err := a.ensureDeepSeekTab(client); err != nil {
+		return askResult{}, err
+	}
+	var baseline deepseek.AnswerSnapshot
+	if err := client.EvaluateValue(deepseek.AnswerSnapshotScript, &baseline); err != nil {
+		return askResult{}, err
+	}
+	if err := client.Fill("textarea", prompt); err != nil {
+		return askResult{}, err
+	}
+	var submit deepseek.SubmitResult
+	if err := client.EvaluateValue(deepseek.SubmitPromptScript, &submit); err != nil {
+		return askResult{}, err
+	}
+	if !submit.OK {
+		if submit.Error == "" {
+			submit.Error = "send_button_missing"
+		}
+		return askResult{}, fmt.Errorf("%s", submit.Error)
+	}
+	answer, stable, err := a.waitForStableAnswer(client, baseline.Count)
+	if err != nil {
+		return askResult{}, err
+	}
+	return askResult{prompt: prompt, answer: answer, stableSamples: stable}, nil
+}
+
+func (a *app) waitForStableAnswer(client *browser.Client, baselineCount int) (string, int, error) {
+	deadline := time.Now().Add(a.timeout)
+	var previous string
+	stable := 0
+	for time.Now().Before(deadline) {
+		var current deepseek.AnswerSnapshot
+		if err := client.EvaluateValue(deepseek.AnswerSnapshotScript, &current); err != nil {
+			return "", 0, err
+		}
+		answer := strings.TrimSpace(current.Latest)
+		if current.Count > baselineCount && answer != "" {
+			if answer == previous {
+				stable++
+			} else {
+				previous = answer
+				stable = 1
+			}
+			if stable >= 2 {
+				return answer, stable, nil
+			}
+		} else {
+			previous = ""
+			stable = 0
+		}
+		time.Sleep(time.Second)
+	}
+	return "", 0, fmt.Errorf("timed out waiting for DeepSeek answer")
 }
 
 func classifyError(err error) (string, string) {
