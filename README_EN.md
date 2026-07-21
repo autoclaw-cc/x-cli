@@ -111,11 +111,19 @@ Full recipe: [recipes/research-local-ai-models_EN.md](./recipes/research-local-a
 
 ---
 
+## Web AI account CLIs
+
+- [chatgpt-cli](./chatgpt-cli/): ordinary chat, web search, Deep Research, citation extraction, and image generation with local download.
+- [notebooklm-cli](./notebooklm-cli/): owned notebooks, sources, grounded chat, notes, Fast/Deep Research, and generation and management for all nine Studio artifact types.
+- [deepseek-cli](./deepseek-cli/): ordinary chat, DeepThink, web search, and file or image input.
+
+All three use an existing login inside an isolated Chrome profile exclusively through Kimi WebBridge. They do not export cookies, tokens, or account identity. See each CLI README for commands and safety boundaries.
+
 ## Install
 
 > **Prerequisite**: install [kimi-webbridge](https://www.kimi.com/features/webbridge) first (drives your local Chrome, shared across all scenarios).
 
-The 12 CLIs in this repo are distributed via GitHub releases. Grab the archive for your platform from the [Releases page](https://github.com/better-world-ai/x-cli/releases), extract it, and run.
+The 15 CLIs in this repo are distributed via GitHub releases. Grab the archive for your platform from the [Releases page](https://github.com/better-world-ai/x-cli/releases), extract it, and run.
 
 `twitter-cli` and `xiaohongshu-cli` are distributed via Homebrew:
 

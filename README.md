@@ -111,11 +111,19 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
 ---
 
+## 网页 AI 账号 CLI
+
+- [chatgpt-cli](./chatgpt-cli/)：普通问答、网页搜索、Deep Research、引用提取，以及图片生成并落盘。
+- [notebooklm-cli](./notebooklm-cli/)：自有笔记本、来源、问答、笔记、Fast/Deep Research，以及九类 Studio 产物的生成和管理。
+- [deepseek-cli](./deepseek-cli/)：普通问答、DeepThink、联网搜索、文件与图片输入。
+
+三者都只通过 Kimi WebBridge 使用隔离 Chrome 的既有登录态，不导出 Cookie、token 或账号身份。详细命令和安全边界见各自 README。
+
 ## 安装
 
 > **前置**：先装 [kimi-webbridge](https://www.kimi.com/zh-cn/features/webbridge)（驱动本地 Chrome，所有场景共用）。
 
-本仓库的 12 个 CLI 通过 GitHub releases 分发，去 [Releases 页面](https://github.com/better-world-ai/x-cli/releases) 下载对应平台归档，解压即可用。
+本仓库的 15 个 CLI 通过 GitHub releases 分发，去 [Releases 页面](https://github.com/better-world-ai/x-cli/releases) 下载对应平台归档，解压即可用。
 
 另有 `twitter-cli` 和 `xiaohongshu-cli` 通过 Homebrew 分发：
 

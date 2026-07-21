@@ -5,6 +5,9 @@ name: release
 #   git tag google-cli/v1.0.0        && git push --tags
 #   git tag nanobanana-cli/v0.2.0    && git push --tags
 #   git tag chatgpt-image-cli/v1.3.0 && git push --tags
+#   git tag chatgpt-cli/v0.1.0       && git push --tags
+#   git tag notebooklm-cli/v0.1.0    && git push --tags
+#   git tag deepseek-cli/v0.1.0      && git push --tags
 #
 # Manual trigger from the Actions tab is also supported (for ad-hoc builds).
 
@@ -15,6 +18,9 @@ on:
       - 'google-cli/v*'
       - 'nanobanana-cli/v*'
       - 'chatgpt-image-cli/v*'
+      - 'chatgpt-cli/v*'
+      - 'notebooklm-cli/v*'
+      - 'deepseek-cli/v*'
       - '58-cli/v*'
       - 'anjuke-cli/v*'
       - 'apartments-cli/v*'
@@ -34,6 +40,9 @@ on:
           - google-cli
           - nanobanana-cli
           - chatgpt-image-cli
+          - chatgpt-cli
+          - notebooklm-cli
+          - deepseek-cli
           - 58-cli
           - anjuke-cli
           - apartments-cli
