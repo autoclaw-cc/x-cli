@@ -9,5 +9,6 @@ type Bridge interface {
 	Fill(selector, value string) error
 	SendKeys(keys string) error
 	CDP(method string, params map[string]any) error
+	NetworkValue(cmd, filter, requestID string, dst any) error
 	CloseSession() error
 }

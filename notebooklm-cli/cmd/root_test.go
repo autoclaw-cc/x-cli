@@ -17,7 +17,7 @@ func TestHelpListsPrimaryCommands(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("code = %d, stderr = %s", code, errOut.String())
 	}
-	for _, want := range []string{"login-status", "capabilities", "notebook", "source", "chat", "note", "studio"} {
+	for _, want := range []string{"login-status", "capabilities", "notebook", "source", "chat", "note", "research", "studio"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("help missing %q:\n%s", want, out.String())
 		}
@@ -118,6 +118,21 @@ func TestSourceRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 	}
 }
 
+func TestResearchRunRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"research", "run", "--notebook", "unknown", "--mode", "fast", "--query", "Example Domain",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
 func TestURLSourceRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 	var out, errOut bytes.Buffer
 	path := filepath.Join(t.TempDir(), "registry.json")
@@ -139,6 +154,21 @@ func TestStudioListRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 	code := Execute([]string{
 		"--registry", path,
 		"studio", "list", "--notebook", "unknown",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestStudioInspectRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "inspect", "--notebook", "unknown", "--type", "video", "--title", "CLI Video",
 	}, &out, &errOut)
 	if code == 0 {
 		t.Fatal("expected non-zero exit")
@@ -184,6 +214,51 @@ func TestStudioExportRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
 	code := Execute([]string{
 		"--registry", path,
 		"studio", "export", "--notebook", "unknown", "--type", "report", "--title", "CLI Report",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestStudioRenameRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "rename", "--notebook", "unknown", "--type", "report", "--title", "Old", "--new-title", "New",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestStudioDeleteRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "delete", "--notebook", "unknown", "--type", "report", "--title", "Disposable", "--confirm",
+	}, &out, &errOut)
+	if code == 0 {
+		t.Fatal("expected non-zero exit")
+	}
+	if !strings.Contains(out.String(), `"code":"notebook_not_owned"`) {
+		t.Fatalf("output = %s", out.String())
+	}
+}
+
+func TestStudioDownloadRejectsUnknownNotebookBeforeBrowser(t *testing.T) {
+	var out, errOut bytes.Buffer
+	path := filepath.Join(t.TempDir(), "registry.json")
+	code := Execute([]string{
+		"--registry", path,
+		"studio", "download", "--notebook", "unknown", "--type", "video", "--title", "CLI Video", "--out", "video.mp4",
 	}, &out, &errOut)
 	if code == 0 {
 		t.Fatal("expected non-zero exit")

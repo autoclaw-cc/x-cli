@@ -140,6 +140,24 @@ func (c *Client) CDP(method string, params map[string]any) error {
 	return err
 }
 
+func (c *Client) NetworkValue(cmd, filter, requestID string, dst any) error {
+	args := map[string]any{"cmd": cmd}
+	if filter != "" {
+		args["filter"] = filter
+	}
+	if requestID != "" {
+		args["requestId"] = requestID
+	}
+	raw, err := c.Call("network", args)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(raw, dst); err != nil {
+		return fmt.Errorf("parse network value: %w", err)
+	}
+	return nil
+}
+
 func (c *Client) CloseSession() error {
 	_, err := c.Call("close_session", map[string]any{})
 	return err

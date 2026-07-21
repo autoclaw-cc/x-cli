@@ -8,10 +8,13 @@ import (
 )
 
 type scriptedBridge struct {
-	calls     []string
-	evals     []any
-	evalIndex int
-	fillErr   error
+	calls        []string
+	evals        []any
+	evalIndex    int
+	networks     []any
+	networkIndex int
+	fillErr      error
+	cdpErr       error
 }
 
 func hasCallContaining(calls []string, want string) bool {
@@ -65,6 +68,7 @@ func (b *scriptedBridge) Fill(selector, value string) error {
 }
 
 var errScriptedFill = errors.New("fill failed")
+var errScriptedCDP = errors.New("cdp failed")
 
 func (b *scriptedBridge) SendKeys(keys string) error {
 	b.calls = append(b.calls, "send_keys:"+keys)
@@ -73,7 +77,23 @@ func (b *scriptedBridge) SendKeys(keys string) error {
 
 func (b *scriptedBridge) CDP(method string, params map[string]any) error {
 	b.calls = append(b.calls, "cdp:"+method)
+	if b.cdpErr != nil && method == "Page.setDownloadBehavior" {
+		return b.cdpErr
+	}
 	return nil
+}
+
+func (b *scriptedBridge) NetworkValue(cmd, filter, requestID string, dst any) error {
+	b.calls = append(b.calls, "network:"+cmd+":"+filter+":"+requestID)
+	if b.networkIndex >= len(b.networks) {
+		return fmt.Errorf("unexpected network call %d", b.networkIndex)
+	}
+	body, err := json.Marshal(b.networks[b.networkIndex])
+	b.networkIndex++
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, dst)
 }
 
 func (b *scriptedBridge) CloseSession() error {

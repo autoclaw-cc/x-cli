@@ -45,8 +45,8 @@ profile endpoint or identity field is required.
 | Local file UI | Observed, automation blocked | Accepts PDF, TXT, MD, DOCX, CSV, PPTX, EPUB, many audio/video/image extensions. WebBridge `upload` returned CDP `Not allowed`. |
 | Google Drive | UI verified | Opens `docs.google.com/picker/v2/home` in a cross-origin iframe; picker contents are outside top-frame WebBridge control. |
 | YouTube | UI observed | Shares the website source path; no public video was imported in this pass. |
-| Fast Research | Verified | 11 candidates returned; exact selection and import of two public results succeeded. |
-| Deep Research | Verified | Five-step asynchronous flow; completed in about 230 seconds; report plus one official result imported. |
+| Fast Research | CLI implemented and live-verified | Clean CLI-created notebook returned completed JSON evidence; import also verified earlier with source count growth. |
+| Deep Research | CLI implemented and live-verified | Clean CLI-created notebook completed with 57 discovered sources after fixing selected-menu handling. |
 | Source selection | Verified | Native checkbox state changes asynchronously after DOM click; state must be re-read before chat. |
 | Note to source | Verified | Saved-answer note converted to a selectable source. |
 
@@ -104,16 +104,25 @@ Every inspected artifact menu exposed share, rename, download, view prompt and
 sources, and delete. Playback/open flows were verified for audio and video.
 The CLI now exports ready artifact visible text plus metadata with
 `studio export --out`; live verification covered a generated report and wrote a
-local JSON file without using browser-level download routing.
+local JSON file without using browser-level download routing. Prompt/source
+inspection is implemented with `studio inspect --out` and was live-verified on a
+ready video artifact. Artifact rename and delete are implemented and were
+live-verified on a disposable CLI-created data-table artifact. Raw media
+download is implemented with `studio download --out`: it captures the signed
+player media request through WebBridge network observation and writes bounded
+Range chunks locally. Live video verification produced a 46,745,559-byte
+`video/mp4` file with an MP4 `ftyp` header. Live audio verification produced a
+14,911,788-byte `audio/mp4` file with an MP4 `ftyp` header.
 
 ## Current Automation Limits
 
 - Browser-level CDP download control is blocked with
-  `Cannot access browser-level commands`; menu download cannot yet be directed
-  into the project output directory.
-- Media player URLs are served from `lh3.googleusercontent.com/notebooklm/...`.
-  In-page fetch is blocked by CORS and an unauthenticated external GET returns
-  HTML, so player URLs are not valid standalone download URLs.
+  `Cannot access browser-level commands`; the CLI therefore does not rely on
+  `Page.setDownloadBehavior`.
+- Media player entry URLs are served from
+  `lh3.googleusercontent.com/notebooklm/...`. In-page fetch is blocked by CORS
+  and unauthenticated external GET returns HTML; the working path is the
+  observed signed `googlevideo.com/videoplayback` request emitted by the player.
 - File upload is visible but `DOM.setFileInputFiles` returns `Not allowed` in
   the current Chrome/WebBridge pairing.
 - Drive picker automation is blocked by the top-frame-only cross-origin iframe
@@ -121,14 +130,16 @@ local JSON file without using browser-level download routing.
 
 The CLI reports these as unavailable rather than pretending the operation
 succeeded. Pasted text, public URL, grounded chat, editable note creation/list,
-note-to-source conversion, Studio capability discovery, typed artifact listing,
-Studio generation, slow-output ready polling, and visible text export are
-implemented. Live generation verification now covers all nine visible Studio
-types: `audio`, `presentation`, `video`, `mind_map`, `report`, `flashcards`,
-`quiz`, `infographic`, and `data_table`; long media outputs require larger
-timeouts or `--wait started` plus `studio wait --out` / `studio list` polling.
+note-to-source conversion, Fast Research, Studio capability discovery, typed
+artifact listing, Studio generation, slow-output ready polling, visible text
+export, prompt/source inspection, raw audio/video media download, artifact rename,
+and artifact delete are implemented. Live generation verification covers all
+nine visible Studio types:
+`audio`, `presentation`, `video`, `mind_map`, `report`, `flashcards`, `quiz`,
+`infographic`, and `data_table`; long media outputs require larger timeouts or
+`--wait started` plus `studio wait --out` / `studio list` polling.
 `studio wait --out` persists local JSON evidence for the ready artifact, and
 `studio export --out` persists visible text content for ready text artifacts.
-Neither command claims raw media download. Fast/Deep Research import, artifact
-playback/rename/delete, prompt-source inspection, and authorized downloads
-remain future slices.
+`studio download --out` persists ready audio/video bytes when the player emits a
+signed media request; both video and audio are live-verified under the active
+provider/browser state.

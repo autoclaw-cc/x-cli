@@ -30,12 +30,17 @@ notebooklm-cli note create --notebook ID --title "CLI NOTE" --text "note body"
 notebooklm-cli note create --notebook ID --title "CLI NOTE" --file note.md
 notebooklm-cli note list --notebook ID
 notebooklm-cli note to-source --notebook ID --title "CLI NOTE"
+notebooklm-cli research run --notebook ID --mode fast --query "Research query" --out artifacts/research.json
 notebooklm-cli studio capabilities --notebook ID
 notebooklm-cli studio list --notebook ID
 notebooklm-cli studio generate --notebook ID --type data_table --prompt "Table request"
 notebooklm-cli studio generate --notebook ID --type mind_map --wait started
 notebooklm-cli studio wait --notebook ID --type video --timeout 20m --out artifacts/video-ready.json
 notebooklm-cli studio export --notebook ID --type report --title "CLI Report" --out artifacts/report.json
+notebooklm-cli studio inspect --notebook ID --type video --title "CLI Video" --out artifacts/video-attribution.json
+notebooklm-cli studio rename --notebook ID --type data_table --title "Old" --new-title "New"
+notebooklm-cli studio delete --notebook ID --type data_table --title "Disposable" --confirm
+notebooklm-cli studio download --notebook ID --type video --title "CLI Video" --out artifacts/video.mp4
 ```
 
 Every command prints one JSON envelope. Successful commands use
@@ -74,6 +79,8 @@ notebooklm-cli chat ask --notebook ID --question "What is the checkpoint?"
 notebooklm-cli note create --notebook ID --title "CLI NOTE" --text "Verified notes persist."
 notebooklm-cli note list --notebook ID
 notebooklm-cli note to-source --notebook ID --title "CLI NOTE"
+notebooklm-cli research run --notebook ID --mode fast --query "Reserved example domains" --out artifacts/research-fast.json
+notebooklm-cli research run --notebook ID --mode deep --query "Deep comparison question" --out artifacts/research-deep.json
 notebooklm-cli studio capabilities --notebook ID
 notebooklm-cli studio generate --notebook ID --type data_table --prompt "Build a compact comparison table."
 notebooklm-cli studio generate --notebook ID --type mind_map --prompt "Map the key evidence."
@@ -86,6 +93,11 @@ notebooklm-cli studio generate --notebook ID --type audio --wait started
 notebooklm-cli studio generate --notebook ID --type video --wait started
 notebooklm-cli studio wait --notebook ID --type video --timeout 20m --out artifacts/notebooklm-video.json
 notebooklm-cli studio export --notebook ID --type report --title "CLI Report" --out artifacts/notebooklm-report.json
+notebooklm-cli studio inspect --notebook ID --type video --title "CLI Video" --out artifacts/video-attribution.json
+notebooklm-cli studio download --notebook ID --type video --title "CLI Video" --out artifacts/video.mp4
+notebooklm-cli studio download --notebook ID --type audio --title "CLI Audio" --out artifacts/audio.m4a
+notebooklm-cli studio rename --notebook ID --type data_table --title "Disposable Table" --new-title "CLI DISPOSABLE"
+notebooklm-cli studio delete --notebook ID --type data_table --title "CLI DISPOSABLE" --confirm
 notebooklm-cli studio list --notebook ID
 ```
 
@@ -104,12 +116,27 @@ with the artifact title, details, state, playable flag, and observation time.
 then writes visible artifact text plus metadata to a local JSON file. It is
 intended for text artifacts such as reports, quizzes, flashcards, data tables,
 mind maps, presentations, and infographics.
+`research run --mode fast` submits a new source-discovery query and can write
+local JSON evidence; live verification passed on a clean CLI-created notebook.
+`research run --mode deep` selects Deep Research without re-clicking an already
+open selected mode menu; live verification completed with 57 discovered sources.
+`studio inspect --out` reads the artifact prompt and source attribution dialog.
+`studio rename` and `studio delete --confirm` were live-verified against a
+disposable CLI-created artifact.
+`studio download --out` captures the signed media request made by NotebookLM's
+player and writes audio/video bytes through bounded Range requests; live
+verification downloaded a 46,745,559-byte `video/mp4` file and a
+14,911,788-byte `audio/mp4` file.
 
 ## Known limits
 
-Current Chrome/WebBridge restrictions block browser-level download routing,
-direct local file upload, and automated control inside the cross-origin Google
-Drive picker. `studio wait --out` writes metadata evidence, not raw media bytes.
+Current Chrome/WebBridge restrictions block direct local file upload and
+automated control inside the cross-origin Google Drive picker. Browser-level
+download routing is also blocked, so `studio download` uses observed player
+media requests rather than `Page.setDownloadBehavior`. `studio wait --out`
+writes metadata evidence, not raw media bytes.
 `studio export --out` exports visible text content and metadata; it does not
-claim raw audio/video byte downloads.
+claim raw audio/video byte downloads. NotebookLM can keep one visible Research
+result in Sources; if that result cannot be cleared through the current browser
+surface, `research run` returns `research_result_present`.
 The CLI reports unsupported paths instead of silently succeeding.

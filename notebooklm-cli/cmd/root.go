@@ -59,7 +59,7 @@ func (a *app) rootCommand() *cobra.Command {
 	root.PersistentFlags().StringVar(&a.registryPath, "registry", a.registryPath, "owned notebook registry path")
 	root.PersistentFlags().DurationVar(&a.timeout, "timeout", a.timeout, "maximum workflow wait")
 	root.AddCommand(a.loginStatusCommand(), a.capabilitiesCommand())
-	root.AddCommand(a.notebookCommand(), a.sourceCommand(), a.chatCommand(), a.noteCommand(), a.studioCommand())
+	root.AddCommand(a.notebookCommand(), a.sourceCommand(), a.chatCommand(), a.noteCommand(), a.researchCommand(), a.studioCommand())
 	return root
 }
 
@@ -286,6 +286,62 @@ func (a *app) chatCommand() *cobra.Command {
 	return parent
 }
 
+type researchEvidence struct {
+	NotebookID string                    `json:"notebook_id"`
+	Mode       string                    `json:"mode"`
+	ObservedAt string                    `json:"observed_at"`
+	OutputPath string                    `json:"output_path,omitempty"`
+	Result     notebooklm.ResearchResult `json:"result"`
+}
+
+func (a *app) researchCommand() *cobra.Command {
+	parent := &cobra.Command{Use: "research", Short: "Run NotebookLM Fast or Deep Research in CLI-owned notebooks"}
+	var notebookID, mode, query, outPath string
+	var importResults bool
+	command := &cobra.Command{
+		Use:   "run",
+		Short: "Run Fast Research or Deep Research and optionally import discovered sources",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.RunResearch(cmd.Context(), client, owned.URL, mode, query, importResults, a.timeout)
+				if err != nil {
+					return err
+				}
+				evidence := researchEvidence{
+					NotebookID: notebookID,
+					Mode:       result.Mode,
+					ObservedAt: time.Now().UTC().Format(time.RFC3339),
+					OutputPath: outPath,
+					Result:     *result,
+				}
+				if outPath != "" {
+					if err := writeJSONEvidence(outPath, evidence); err != nil {
+						return &commandError{code: "write_failed", message: err.Error()}
+					}
+				}
+				return output.Success(a.out, evidence)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&mode, "mode", "fast", "fast or deep")
+	command.Flags().StringVar(&query, "query", "", "research query")
+	command.Flags().BoolVar(&importResults, "import", false, "import discovered sources after research completes")
+	command.Flags().StringVar(&outPath, "out", "", "optional local JSON evidence path")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("query")
+	parent.AddCommand(command)
+	return parent
+}
+
 func (a *app) noteCommand() *cobra.Command {
 	parent := &cobra.Command{Use: "note", Short: "Manage editable notes in CLI-owned notebooks"}
 	parent.AddCommand(a.noteCreateCommand(), a.noteListCommand(), a.noteToSourceCommand())
@@ -422,7 +478,7 @@ func (a *app) studioCommand() *cobra.Command {
 	}
 	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
 	_ = command.MarkFlagRequired("notebook")
-	parent.AddCommand(command, a.studioListCommand(), a.studioGenerateCommand(), a.studioWaitCommand(), a.studioExportCommand())
+	parent.AddCommand(command, a.studioListCommand(), a.studioGenerateCommand(), a.studioWaitCommand(), a.studioExportCommand(), a.studioInspectCommand(), a.studioRenameCommand(), a.studioDeleteCommand(), a.studioDownloadCommand())
 	return parent
 }
 
@@ -599,6 +655,168 @@ func (a *app) studioExportCommand() *cobra.Command {
 	return command
 }
 
+type studioInspectEvidence struct {
+	NotebookID string                             `json:"notebook_id"`
+	Type       string                             `json:"type"`
+	ObservedAt string                             `json:"observed_at"`
+	OutputPath string                             `json:"output_path,omitempty"`
+	Result     notebooklm.StudioAttributionResult `json:"result"`
+}
+
+func (a *app) studioInspectCommand() *cobra.Command {
+	var notebookID, kind, title, outPath string
+	command := &cobra.Command{
+		Use:   "inspect",
+		Short: "Inspect prompt and source attribution for a Studio artifact",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.InspectStudioAttribution(cmd.Context(), client, owned.URL, kind, title, a.timeout)
+				if err != nil {
+					return err
+				}
+				evidence := studioInspectEvidence{
+					NotebookID: notebookID,
+					Type:       result.Artifact.Type,
+					ObservedAt: time.Now().UTC().Format(time.RFC3339),
+					OutputPath: outPath,
+					Result:     *result,
+				}
+				if outPath != "" {
+					if err := writeJSONEvidence(outPath, evidence); err != nil {
+						return &commandError{code: "write_failed", message: err.Error()}
+					}
+				}
+				return output.Success(a.out, evidence)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&kind, "type", "", "Studio output type to inspect")
+	command.Flags().StringVar(&title, "title", "", "exact unique Studio artifact title")
+	command.Flags().StringVar(&outPath, "out", "", "optional local JSON evidence path")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("type")
+	_ = command.MarkFlagRequired("title")
+	return command
+}
+
+func (a *app) studioRenameCommand() *cobra.Command {
+	var notebookID, kind, title, newTitle string
+	command := &cobra.Command{
+		Use:   "rename",
+		Short: "Rename a unique Studio artifact",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.RenameStudioArtifact(cmd.Context(), client, owned.URL, kind, title, newTitle, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&kind, "type", "", "Studio output type to rename")
+	command.Flags().StringVar(&title, "title", "", "exact current Studio artifact title")
+	command.Flags().StringVar(&newTitle, "new-title", "", "new artifact title")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("type")
+	_ = command.MarkFlagRequired("title")
+	_ = command.MarkFlagRequired("new-title")
+	return command
+}
+
+func (a *app) studioDeleteCommand() *cobra.Command {
+	var notebookID, kind, title string
+	var confirm bool
+	command := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete a unique Studio artifact after explicit confirmation",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !confirm {
+				return &commandError{code: "confirmation_required", message: "pass --confirm to delete this exact Studio artifact"}
+			}
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.DeleteStudioArtifact(cmd.Context(), client, owned.URL, kind, title, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&kind, "type", "", "Studio output type to delete")
+	command.Flags().StringVar(&title, "title", "", "exact unique Studio artifact title")
+	command.Flags().BoolVar(&confirm, "confirm", false, "confirm deletion of this exact artifact")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("type")
+	_ = command.MarkFlagRequired("title")
+	return command
+}
+
+func (a *app) studioDownloadCommand() *cobra.Command {
+	var notebookID, kind, title, outPath string
+	command := &cobra.Command{
+		Use:   "download",
+		Short: "Attempt a managed raw Studio media download when WebBridge permits it",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r, err := registry.Load(a.registryPath)
+			if err != nil {
+				return err
+			}
+			owned, err := r.RequireOwned(notebookID)
+			if err != nil {
+				return &commandError{code: "notebook_not_owned", message: err.Error()}
+			}
+			dir := filepath.Dir(outPath)
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return &commandError{code: "write_failed", message: err.Error()}
+			}
+			return a.withClient(cmd.Context(), func(client *browser.Client) error {
+				result, err := notebooklm.DownloadStudioArtifact(cmd.Context(), client, owned.URL, kind, title, outPath, a.timeout)
+				if err != nil {
+					return err
+				}
+				return output.Success(a.out, result)
+			})
+		},
+	}
+	command.Flags().StringVar(&notebookID, "notebook", "", "owned notebook ID")
+	command.Flags().StringVar(&kind, "type", "", "Studio output type to download")
+	command.Flags().StringVar(&title, "title", "", "exact unique Studio artifact title")
+	command.Flags().StringVar(&outPath, "out", "", "local file path for the raw media bytes")
+	_ = command.MarkFlagRequired("notebook")
+	_ = command.MarkFlagRequired("type")
+	_ = command.MarkFlagRequired("title")
+	_ = command.MarkFlagRequired("out")
+	return command
+}
+
 func writeStudioWaitEvidence(path string, evidence studioWaitEvidence) error {
 	return writeJSONEvidence(path, evidence)
 }
@@ -654,7 +872,7 @@ func classifyError(err error) (string, string) {
 		return coded.code, coded.message
 	}
 	message := err.Error()
-	for _, code := range []string{"not_logged_in", "captcha_required", "timeout", "notebook_not_owned"} {
+	for _, code := range []string{"not_logged_in", "captcha_required", "timeout", "notebook_not_owned", "download_unavailable", "research_result_present"} {
 		if strings.HasPrefix(message, code+":") {
 			return code, strings.TrimSpace(strings.TrimPrefix(message, code+":"))
 		}
