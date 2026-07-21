@@ -16,3 +16,5 @@
 
 # Local scratch
 /tmp/
+/.codex/
+/.worktrees/

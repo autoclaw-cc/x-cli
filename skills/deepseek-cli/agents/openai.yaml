@@ -1,0 +1,4 @@
+interface:
+  display_name: "DeepSeek CLI"
+  short_description: "Use the local DeepSeek browser CLI"
+  default_prompt: "Use deepseek-cli to inspect or ask DeepSeek through the isolated Chrome session."
