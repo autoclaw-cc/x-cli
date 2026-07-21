@@ -53,7 +53,8 @@ by submitting a second prompt.
 
 ## Safety And Output Contract
 
-- Every invocation uses a unique `chatgpt-cli-*` WebBridge session and closes it.
+- Every invocation uses a unique `chatgpt-cli-*` WebBridge session. Result-producing
+  commands close their tabs; `chat new` intentionally leaves its fresh blank tab open.
 - `--webbridge-url`, then `KIMI_WEBBRIDGE_URL`, then
   `http://127.0.0.1:10086` selects the daemon.
 - Success: `{"ok":true,"data":...}`.
