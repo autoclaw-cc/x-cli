@@ -53,7 +53,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 | Gaokao applications | [gaokao-cli](./gaokao-cli/) + [gaokao-assistant](./skills/gaokao-assistant/) skill | [gaokao-jiangsu-211](./recipes/gaokao-jiangsu-211_EN.md) |
 | Batch image generation | [chatgpt-image-cli](./chatgpt-image-cli/), [nanobanana-cli](./nanobanana-cli/) | [batch-image-shiba-inu](./recipes/batch-image-shiba-inu_EN.md) |
 | Topic research | [google-cli](./google-cli/), [baidu-cli](./baidu-cli/) | [research-local-ai-models](./recipes/research-local-ai-models_EN.md) |
-| Academic literature | [scholar-cli](./scholar-cli/) + [paper-research](./skills/paper-research/) skill | — |
+| Academic literature | [scholar-cli](./scholar-cli/) + [paper-research](./skills/paper-research/) skill | [review-rag-literature](./recipes/review-rag-literature_EN.md) |
 | Job hunting | [boss-cli](./boss-cli/) | — |
 
 `twitter-cli` and `xiaohongshu-cli` ship via Homebrew and don't live in this repo:
