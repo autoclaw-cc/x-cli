@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -92,16 +93,30 @@ func EnrichByDOI(ctx context.Context, doi string) (*paper.Paper, error) {
 	// S2 keys arXiv DOIs under `arXiv:<id>`, not `DOI:10.48550/arXiv.<id>` —
 	// the latter often 404s even when the paper is in S2.
 	s2Path := "DOI:" + doi
+	arxivID := ""
 	if strings.HasPrefix(strings.ToLower(doi), "10.48550/arxiv.") {
-		s2Path = "arXiv:" + doi[len("10.48550/arXiv."):]
+		arxivID = doi[len("10.48550/arXiv."):]
+		s2Path = "arXiv:" + arxivID
 	}
 	s2URL := fmt.Sprintf(
 		"https://api.semanticscholar.org/graph/v1/paper/%s?fields=title,authors,abstract,year,citationCount,referenceCount,openAccessPdf,externalIds,venue",
 		url.PathEscape(s2Path))
 
-	resp2, err := s2GET(ctx, s2URL)
-	if err == nil {
+	resp2, s2Err := s2GET(ctx, s2URL)
+	if s2Err == nil {
 		defer resp2.Body.Close()
+		// Without this check a non-200 body gets decoded into an all-zero
+		// struct, which is indistinguishable from a successful empty result.
+		// 404 is left as a nil error on purpose: it is S2 stating the record
+		// genuinely isn't there, which is the ordinary not-found path. Only
+		// codes that mean "ask again later" become errors.
+		switch resp2.StatusCode {
+		case http.StatusOK, http.StatusNotFound:
+		default:
+			s2Err = fmt.Errorf("semantic scholar returned HTTP %d", resp2.StatusCode)
+		}
+	}
+	if s2Err == nil {
 		var s2Data struct {
 			PaperID    string `json:"paperId"`
 			Title      string `json:"title"`
@@ -162,7 +177,25 @@ func EnrichByDOI(ctx context.Context, doi string) (*paper.Paper, error) {
 		}
 	}
 
+	// An arXiv DOI 404s on CrossRef by design, so if S2 also came up empty the
+	// record is not actually missing — we just have not asked the one service
+	// that definitively holds it. arXiv's API has no shared rate limit, so this
+	// keeps `detail` working through an S2 outage instead of failing with it.
+	if p.Title == "" && arxivID != "" {
+		if ap, err := FetchByArXivID(ctx, arxivID); err == nil {
+			ap.DOI = doi
+			ap.Sources = []string{"arxiv"}
+			return ap, nil
+		}
+	}
+
 	if p.Title == "" {
+		// Distinguish "we were throttled" from "it isn't there". Reporting a
+		// transient 429 as a missing paper sends the user off editing a DOI
+		// that was correct, and tells an agent to give up instead of retry.
+		if s2Err != nil {
+			return nil, fmt.Errorf("could not resolve DOI %s: %w", doi, s2Err)
+		}
 		return nil, fmt.Errorf("could not find paper with DOI %s", doi)
 	}
 
