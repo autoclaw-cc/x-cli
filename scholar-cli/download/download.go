@@ -30,11 +30,25 @@ const userAgent = "scholar-cli/1.0"
 // contactEmail returns the email to send to polite-pool APIs (Unpaywall,
 // CrossRef, NCBI). Set SCHOLAR_CLI_EMAIL to your own address. Defaults to
 // the RFC-reserved example.com so we never accidentally use a real one.
+const placeholderEmail = "scholar-cli@example.com"
+
 func contactEmail() string {
 	if e := os.Getenv("SCHOLAR_CLI_EMAIL"); e != "" {
 		return e
 	}
-	return "scholar-cli@example.com"
+	return placeholderEmail
+}
+
+// hasRealContactEmail reports whether a usable address is configured.
+//
+// Unpaywall is stricter than the other polite pools: CrossRef and OpenAlex
+// merely tighten quota for an unidentified caller, but Unpaywall rejects the
+// reserved example.com default outright with HTTP 422 ("Please use your own
+// email address in API calls"). The repo forbids baking in a real address, so
+// this channel simply cannot work until the user sets SCHOLAR_CLI_EMAIL — the
+// most we can do is stop failing silently about it.
+func hasRealContactEmail() bool {
+	return contactEmail() != placeholderEmail
 }
 
 type DownloadResult struct {
@@ -100,18 +114,24 @@ func Download(ctx context.Context, p *paper.Paper, outputDir string, scihubDomai
 	}
 
 	// Channel 2: Unpaywall
-	unpURL := fmt.Sprintf("https://api.unpaywall.org/v2/%s?email=%s",
-		url.PathEscape(p.DOI), url.QueryEscape(contactEmail()))
-	if pdfURL, err := getUnpaywallURL(ctx, unpURL); err == nil && pdfURL != "" {
-		size, err := downloadFile(ctx, pdfURL, destPath)
-		if err == nil && size > 1024 {
-			return &DownloadResult{
-				DOI:      p.DOI,
-				Title:    p.Title,
-				FilePath: destPath,
-				Source:   "unpaywall",
-				Size:     size,
-			}, nil
+	var skipped []string
+	if !hasRealContactEmail() {
+		skipped = append(skipped,
+			"unpaywall skipped: set SCHOLAR_CLI_EMAIL to your own address (it rejects the placeholder default)")
+	} else {
+		unpURL := fmt.Sprintf("https://api.unpaywall.org/v2/%s?email=%s",
+			url.PathEscape(p.DOI), url.QueryEscape(contactEmail()))
+		if pdfURL, err := getUnpaywallURL(ctx, unpURL); err == nil && pdfURL != "" {
+			size, err := downloadFile(ctx, pdfURL, destPath)
+			if err == nil && size > 1024 {
+				return &DownloadResult{
+					DOI:      p.DOI,
+					Title:    p.Title,
+					FilePath: destPath,
+					Source:   "unpaywall",
+					Size:     size,
+				}, nil
+			}
 		}
 	}
 
@@ -134,6 +154,12 @@ func Download(ctx context.Context, p *paper.Paper, outputDir string, scihubDomai
 		}
 	}
 
+	// Name any channel that never ran, so "all channels failed" cannot be read
+	// as "this paper has no free copy" when one was simply never checked.
+	if len(skipped) > 0 {
+		return nil, fmt.Errorf("all download channels failed for DOI %s (%s)",
+			p.DOI, strings.Join(skipped, "; "))
+	}
 	return nil, fmt.Errorf("all download channels failed for DOI %s", p.DOI)
 }
 
