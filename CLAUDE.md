@@ -15,4 +15,4 @@ This repo collects CLIs. The ones in it today are all Go and drive Chrome via [k
 
 ## After merge
 
-When a CLI PR lands, run `update contributors for PR <N>` (see `.claude/skills/pr-review/`). Returning contributors only get NEW contribution types added — don't re-list types they already have.
+When a CLI PR lands, update the all-contributors table for it. Returning contributors only get NEW contribution types added — don't re-list types they already have.
