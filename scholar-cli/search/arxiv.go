@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -21,7 +22,32 @@ func (a *ArXiv) Search(ctx context.Context, query string, limit int) ([]paper.Pa
 	}
 	u := fmt.Sprintf("http://export.arxiv.org/api/query?search_query=all:%s&max_results=%d&sortBy=relevance",
 		url.QueryEscape(query), limit)
+	return fetchArXivFeed(ctx, u)
+}
 
+// FetchByArXivID looks a single record up by its bare arXiv ID (e.g.
+// "2309.15217"). arXiv's own API imposes no shared rate limit, which makes it a
+// dependable fallback for arXiv DOIs — those 404 on CrossRef by design, leaving
+// Semantic Scholar as the only other source and its no-key tier as a single
+// point of failure.
+func FetchByArXivID(ctx context.Context, id string) (*paper.Paper, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, fmt.Errorf("empty arxiv id")
+	}
+	u := fmt.Sprintf("http://export.arxiv.org/api/query?id_list=%s&max_results=1",
+		url.QueryEscape(id))
+	papers, err := fetchArXivFeed(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	if len(papers) == 0 {
+		return nil, fmt.Errorf("arxiv has no record for %s", id)
+	}
+	return &papers[0], nil
+}
+
+func fetchArXivFeed(ctx context.Context, u string) ([]paper.Paper, error) {
 	req, err := newRequest(ctx, "GET", u)
 	if err != nil {
 		return nil, err
@@ -32,6 +58,9 @@ func (a *ArXiv) Search(ctx context.Context, query string, limit int) ([]paper.Pa
 		return nil, fmt.Errorf("arxiv request: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("arxiv returned HTTP %d", resp.StatusCode)
+	}
 
 	var feed struct {
 		XMLName xml.Name `xml:"feed"`

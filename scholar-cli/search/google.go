@@ -73,7 +73,11 @@ func (g *GoogleScholar) Search(ctx context.Context, query string, limit int) ([]
 			}
 
 			// Parse meta line: "Author1, Author2 - Venue, Year - Publisher"
-			var meta = metaEl ? metaEl.textContent : "";
+			// Scholar joins the author list to the venue with U+00A0 (a
+			// non-breaking space), so splitting on a plain " - " only ever
+			// matches the last separator. Normalise first, or the venue and
+			// the year end up parsed as extra authors.
+			var meta = metaEl ? metaEl.textContent.replace(/\u00a0/g, " ") : "";
 			var authors = [];
 			var venue = "";
 			var year = 0;
