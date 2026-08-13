@@ -53,7 +53,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 | 高考志愿 | [gaokao-cli](./gaokao-cli/) + [gaokao-assistant](./skills/gaokao-assistant/) skill | [gaokao-jiangsu-211](./recipes/gaokao-jiangsu-211.md) |
 | AI 批量出图 | [chatgpt-image-cli](./chatgpt-image-cli/)、[nanobanana-cli](./nanobanana-cli/) | [batch-image-shiba-inu](./recipes/batch-image-shiba-inu.md) |
 | 主题调研 | [google-cli](./google-cli/)、[baidu-cli](./baidu-cli/) | [research-local-ai-models](./recipes/research-local-ai-models.md) |
-| 文献检索 | [scholar-cli](./scholar-cli/) + [paper-research](./skills/paper-research/) skill | 暂无 |
+| 文献检索 | [scholar-cli](./scholar-cli/) + [paper-research](./skills/paper-research/) skill | [research-academic-papers](./recipes/research-academic-papers.md) |
 | 找工作 | [boss-cli](./boss-cli/) | 暂无 |
 
 另有 `twitter-cli` 和 `xiaohongshu-cli` 通过 Homebrew 分发，不在本仓库目录里：
