@@ -5,25 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 )
 
 const DefaultDaemonURL = "http://127.0.0.1:10086"
 
 type Client struct {
-	baseURL string
-	session string
-	http    *http.Client
+	baseURL    string
+	session    string
+	groupTitle string
+	grouped    bool
+	http       *http.Client
 }
 
 func NewClient(session string) *Client {
 	return &Client{
-		baseURL: DefaultDaemonURL,
-		session: session,
-		http:    &http.Client{Timeout: 90 * time.Second},
+		baseURL:    DefaultDaemonURL,
+		session:    session,
+		groupTitle: "scholar-cli 文献检索",
+		http:       &http.Client{Timeout: 90 * time.Second},
 	}
 }
 
@@ -84,12 +85,24 @@ func (c *Client) Navigate(url string) error {
 	return err
 }
 
+// NavigateNewTab points this session's tab at url, creating it on the first
+// call and reusing it afterwards.
+//
+// Despite the name it does not pass newTab. WebBridge reserves newTab for pages
+// that must coexist (comparing, cross-referencing); a search CLI only ever
+// reads one page at a time, so requesting a fresh tab per call just piles up
+// tabs in the user's browser — one per search — that nothing ever closes.
+// Reusing the session's tab is also self-healing: if the user closes it by
+// hand, the daemon creates a new one instead of erroring.
 func (c *Client) NavigateNewTab(url string) error {
-	_, err := c.Call("navigate", map[string]any{"url": url, "newTab": true})
-	if err != nil && strings.Contains(err.Error(), "No tab with given id") {
-		c.session = fmt.Sprintf("%s_%d", c.session, rand.Intn(9000)+1000)
-		_, err = c.Call("navigate", map[string]any{"url": url, "newTab": true})
+	args := map[string]any{"url": url, "newTab": false}
+	if !c.grouped {
+		// Label the tab group on the first navigate so the user can see which
+		// group is this task's, and close it themselves whenever they want.
+		args["group_title"] = c.groupTitle
+		c.grouped = true
 	}
+	_, err := c.Call("navigate", args)
 	return err
 }
 
