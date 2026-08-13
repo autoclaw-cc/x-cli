@@ -1,0 +1,25 @@
+name: readme-check
+
+# Fails when README.md / README_EN.md drift out of sync with the repo:
+# a *-cli/ directory nobody mentions, or a stated CLI count that is stale.
+#
+# Run it locally with the same script the workflow uses:
+#   ./scripts/check-readme.sh
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - '*-cli/**'
+      - 'README.md'
+      - 'README_EN.md'
+      - 'scripts/check-readme.sh'
+      - '.github/workflows/readme-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check-readme.sh
