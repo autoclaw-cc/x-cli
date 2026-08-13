@@ -5,124 +5,103 @@
 
 English | [中文](./README.md)
 
-Tell an AI agent in one sentence what you keep doing on a webpage, and it'll turn that into a CLI tool. The generated CLI can be called by your agent any time, driving your real Chrome login session directly — no API, no token juggling.
+11 PM, and you're still bouncing between Zillow, Apartments.com and half a dozen local listing sites. Refresh, wait, re-enter the filters, and half of what comes back is stale anyway. Try another country and it gets worse — London means Rightmove, Madrid means Idealista, and every site's filter panel is shaped differently.
 
-This repo collects several CLIs built exactly this way. They're installable and useful as-is, but they also serve as reference cases showing how AI agent + [kimi-webbridge](https://www.kimi.com/features/webbridge) turns a one-line request into a complete CLI.
+I didn't go looking for a tool. I said one sentence to my agent:
 
-DEMO (a CLI being born):
+> Build me a CLI for 58.com. I want to search rentals.
+
+Then I went and did something else. By the time I came back, `58-cli` worked. Anjuke, Rightmove, Idealista came later — the same sentence, a few more times.
+
+Two things make this work:
+
+- **[agent-cli-creator](https://github.com/better-world-ai/agent-cli-creator)** — a skill that teaches your agent how to turn a website into a CLI. It handles *how to build*.
+- **[kimi-webbridge](https://www.kimi.com/features/webbridge)** — a browser extension plus a local skill that lets the agent drive the Chrome already sitting on your desk. It handles *what the result runs on*.
+
+Why route through a browser at all? Because 58.com has no public API. Neither does Anjuke. Neither does Ctrip. That data doesn't live in any API doc — it only exists inside the tab you already have open and already logged into. What webbridge does is hand that tab to your agent. No key to apply for, no token to keep alive.
+
+This repo is the showcase of what came out. All 14 CLIs in it were built this way.
+
+## What the agent did after that sentence
+
+It asked me two questions first: which language, and which features to start with. I said Go, and just search plus detail for now.
+
+Then it didn't write any code. It opened my Chrome, actually searched 58.com for an apartment, watched the network requests until it had the endpoint, and then ran that endpoint right there in the browser to confirm real data came back. **That step is the one that matters most** — a site won't tell you what its endpoints look like, so you have to go look.
+
+Only after that did it start building. Scaffold, then read-only commands first, verifying each one before moving to the next.
+
+What I ended up with:
+
+```bash
+58-cli search --city sh --keyword 张江 --max-price 5000 --limit 3
+```
+
+```json
+{"ok": true, "data": {"listings": [{"title": "...", "rent_monthly": 4800, "layout": "2室1厅", "area_sqm": 68}]}}
+```
+
+Here's a full CLI being born, start to finish:
 
 https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
-## 5 ready-made scenarios
+## The same sentence, 13 more times
 
-Every scenario needs [kimi-webbridge](https://www.kimi.com/features/webbridge) first (it drives your local Chrome). Install once, reuse everywhere.
+| Scenario | CLIs used | Full recipe |
+|----------|-----------|-------------|
+| Rentals across countries | [58-cli](./58-cli/), [anjuke-cli](./anjuke-cli/), [apartments-cli](./apartments-cli/), [rightmove-cli](./rightmove-cli/), [idealista-cli](./idealista-cli/) + [rental-assistant](./skills/rental-assistant/) skill | [find-shanghai-rental](./recipes/find-shanghai-rental_EN.md) |
+| Trip planning | [ctrip-cli](./ctrip-cli/), [booking-cli](./booking-cli/) + [travel-planning](./skills/travel-planning/) skill | [plan-kyoto-trip](./recipes/plan-kyoto-trip_EN.md) |
+| Gaokao applications | [gaokao-cli](./gaokao-cli/) + [gaokao-assistant](./skills/gaokao-assistant/) skill | [gaokao-jiangsu-211](./recipes/gaokao-jiangsu-211_EN.md) |
+| Batch image generation | [chatgpt-image-cli](./chatgpt-image-cli/), [nanobanana-cli](./nanobanana-cli/) | [batch-image-shiba-inu](./recipes/batch-image-shiba-inu_EN.md) |
+| Topic research | [google-cli](./google-cli/), [baidu-cli](./baidu-cli/) | [research-local-ai-models](./recipes/research-local-ai-models_EN.md) |
+| Academic literature | [scholar-cli](./scholar-cli/) + [paper-research](./skills/paper-research/) skill | — |
+| Job hunting | [boss-cli](./boss-cli/) | — |
 
-### ✈️ Plan a full trip in one sentence
-
-> "Plan a 5-day trip to Kyoto in June"
-
-It's Friday night, you suddenly feel like getting out of town. Then you remember you'd have to open Ctrip to compare hotels, open Booking to check international rates, switch to a flight site to scan timings — and you put the idea down. Send that one sentence to the AI, and by the time you're done brushing your teeth, the flight times, hotel comparison, and attraction route are already lined up. Just follow it.
-
-You can be more specific too: "May 1st, Shanghai to Chiang Mai round-trip, budget under $1500, pick two hotels rated 8.5+." The AI translates those constraints into the search itself.
-
-**Uses**: [ctrip-cli](./ctrip-cli/) + [booking-cli](./booking-cli/) + [travel-planning](./skills/travel-planning/) skill
-
-**Try it now**:
-1. Download ctrip-cli and booking-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
-2. `npx skills add better-world-ai/x-cli --skill travel-planning`
-3. Open Claude and send the sentence above
-
-Full recipe: [recipes/plan-kyoto-trip_EN.md](./recipes/plan-kyoto-trip_EN.md)
-
----
-
-### 🏠 Search rentals across countries in one shot
-
-> "Find me a 1-bedroom in central London under £2000/month"
-
-11 PM and you're still bouncing between rental sites — refresh, load, retype filters, and half the listings turn out to be fake. Hunting across countries is worse: London needs Rightmove, Madrid needs Idealista, Shanghai needs 58.com and Anjuke, and every site's filter UI is different.
-
-Tell the AI your budget, layout, and commute distance once. It queries five platforms in parallel, filters by your criteria, and gives you a single side-by-side list. Same approach whether you're hunting in Shanghai or London.
-
-**Uses**: [58-cli](./58-cli/) + [anjuke-cli](./anjuke-cli/) + [apartments-cli](./apartments-cli/) + [rightmove-cli](./rightmove-cli/) + [idealista-cli](./idealista-cli/) + [rental-assistant](./skills/rental-assistant/) skill; helper `xiaohongshu-cli` for rental tips
-
-**Try it now**:
-1. Download the 5 rental CLIs from [Releases](https://github.com/better-world-ai/x-cli/releases)
-2. `brew install xpzouying/agent-cli/xiaohongshu-cli`
-3. `npx skills add better-world-ai/x-cli --skill rental-assistant`
-4. Open Claude and send the sentence above
-
-Full recipe: [recipes/find-shanghai-rental_EN.md](./recipes/find-shanghai-rental_EN.md)
-
----
-
-### 🎓 Gaokao admissions: all the info you need on one screen
-
-> "I'm a Jiangsu test-taker with 580 points — which 211 schools can I get into?"
-
-Scores are out. The application form is due in three days. Your provincial rank lands in some awkward bracket, prior-year admissions data is scattered across a dozen webpages and a few outdated PDFs, and well-meaning advice from older relatives only makes things more confusing.
-
-Ask the AI one question. It pulls official score lines, three years of admissions ranks, and corresponding majors, then ranks reach/target/safety schools based on your preferences. It won't decide for you, but everything you need to decide is on one screen.
-
-**Uses**: [gaokao-cli](./gaokao-cli/) + [gaokao-assistant](./skills/gaokao-assistant/) skill
-
-**Try it now**:
-1. Download gaokao-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
-2. `npx skills add better-world-ai/x-cli --skill gaokao-assistant`
-3. Open Claude and send the sentence above
-
-Full recipe: [recipes/gaokao-jiangsu-211_EN.md](./recipes/gaokao-jiangsu-211_EN.md)
-
----
-
-### 🎨 AI images without manually saving each one
-
-> "Draw a shiba inu in a suit, standing in Times Square"
-
-You need an image for a slide — open ChatGPT's web app, type the prompt, wait, right-click save, rename. Next image, same loop. By the tenth one you're sick of it, and the thought of batching thirty cover images for a layout is unbearable.
-
-Describe what you want to the AI. It uses your already-logged-in Chrome to drive ChatGPT or Gemini, generates the images, and saves them to a local folder with consistent naming. No API key signup, no interruption to what you're doing — thirty images land on your desktop while you finish your next paragraph.
-
-**Uses**: [chatgpt-image-cli](./chatgpt-image-cli/) + [nanobanana-cli](./nanobanana-cli/)
-
-**Try it now**:
-1. Download chatgpt-image-cli or nanobanana-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
-2. Open Claude and send the sentence above
-
-Full recipe: [recipes/batch-image-shiba-inu_EN.md](./recipes/batch-image-shiba-inu_EN.md)
-
----
-
-### 🔍 Research a topic: search, read, summarize
-
-> "Search for 'best local AI models 2025', fetch the body text of the top 10 results"
-
-Want to understand an unfamiliar topic? The old way: Google it, click each result, read through, copy the key points, write up notes. A whole morning gone.
-
-Let the AI take that loop. It runs the search, follows each result, pulls the body text. You can ask it to synthesize a summary, or keep the raw articles to read yourself. For research scoping, tracking what's new in a field, or gathering material for an article, this is the front door.
-
-**Uses**: [google-cli](./google-cli/) + [baidu-cli](./baidu-cli/)
-
-**Try it now**:
-1. Download google-cli or baidu-cli from [Releases](https://github.com/better-world-ai/x-cli/releases)
-2. Open Claude and send the sentence above
-
-Full recipe: [recipes/research-local-ai-models_EN.md](./recipes/research-local-ai-models_EN.md)
-
----
-
-## Install
-
-> **Prerequisite**: install [kimi-webbridge](https://www.kimi.com/features/webbridge) first (drives your local Chrome, shared across all scenarios).
-
-The 12 CLIs in this repo are distributed via GitHub releases. Grab the archive for your platform from the [Releases page](https://github.com/better-world-ai/x-cli/releases), extract it, and run.
-
-`twitter-cli` and `xiaohongshu-cli` are distributed via Homebrew:
+`twitter-cli` and `xiaohongshu-cli` ship via Homebrew and don't live in this repo:
 
 ```bash
 brew tap xpzouying/agent-cli
 brew install twitter-cli xiaohongshu-cli
 ```
+
+## What to install depends on what you want
+
+### Just want to use the existing CLIs
+
+**You don't need agent-cli-creator.** Two steps:
+
+**Step 1 — install kimi-webbridge.** It comes in two parts, installed once and shared by every CLI here:
+
+1. The browser extension — your agent's way into the browser. Once it's in, every click, keystroke and read goes through it, and the Chrome sessions you're already logged into get reused automatically.
+   - English: <https://www.kimi.com/features/webbridge>
+   - 中文: <https://www.kimi.com/zh-cn/features/webbridge>
+2. The local skill, which teaches your agent how to use that extension:
+
+   ```bash
+   curl -fsSL https://cdn.kimi.com/webbridge/install.sh | bash
+   ```
+
+**Step 2 — grab a CLI.** Download the archive for your platform from the [Releases page](https://github.com/better-world-ai/x-cli/releases) and extract it.
+
+For the scenarios above that come with a skill, add one more line, e.g.:
+
+```bash
+npx skills add better-world-ai/x-cli --skill rental-assistant
+```
+
+Then open your agent and just talk: "Find me a two-bedroom in Zhangjiang, Shanghai, under 5000 a month."
+
+### Want to build your own
+
+1. Install [kimi-webbridge](https://www.kimi.com/features/webbridge) (both parts above — skip if you already have it)
+2. Install [agent-cli-creator](https://github.com/better-world-ai/agent-cli-creator):
+
+   ```bash
+   npx skills add better-world-ai/agent-cli-creator
+   ```
+
+3. Log into the target site in Chrome, then tell your agent: "Build me a CLI for example.com. I want to pull the home feed and post comments."
+
+The agent will ask which language and which features to start with, then go explore the site, scaffold the project and implement the commands, stopping to check with you at the decision points. For manual installation without Node.js, and for how the skill works internally, see the [agent-cli-creator README](https://github.com/better-world-ai/agent-cli-creator).
 
 ### macOS Gatekeeper prompt
 
@@ -140,11 +119,19 @@ cd x-cli/<some-cli>
 go build -o ./<cli-name> .
 ```
 
-## Build your own scenario
+## Your turn
 
-The CLIs used in all 5 scenarios above were produced automatically by AI agents using the [`agent-cli-creator`](https://github.com/better-world-ai/agent-cli-creator) skill. Install the skill, then say "Build me a CLI for example.com" to your agent — that's it.
+Code stopped being the bottleneck a while ago. The bottleneck is whether you say the sentence out loud.
 
-Full prerequisites, install commands, and walkthrough live in the [agent-cli-creator README](https://github.com/better-world-ai/agent-cli-creator/blob/main/README_EN.md).
+```bash
+npx skills add better-world-ai/agent-cli-creator
+```
+
+Then fill in the blanks and send it to your agent:
+
+> Build me a CLI for \_\_\_\_\_\_. I want to \_\_\_\_\_\_.
+
+All 14 in this repo started exactly there.
 
 ## Contributors ✨
 
