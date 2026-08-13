@@ -44,6 +44,45 @@ func checkDaemon(client *browser.Client) {
 	}
 }
 
+// emitSearch prints a single-source search result, persisting it into the
+// workspace first when one was given.
+//
+// The browser-backed sources used to print and stop, which quietly cut them out
+// of the rest of the pipeline: `export` reads only from the workspace, so a
+// Google Scholar hit could never reach BibTeX without the user retyping the
+// title into search-en. Sharing the workspace also lets dedup merge a paper
+// found in two places — arXiv contributes the PDF link, Google Scholar the
+// citation count.
+func emitSearch(papers []paper.Paper, source string, workspace string) {
+	if workspace == "" {
+		output.Success(map[string]any{
+			"papers": papers,
+			"total":  len(papers),
+			"source": source,
+		})
+		return
+	}
+
+	s, err := store.Open(workspace)
+	if err != nil {
+		output.Error("store_error", err.Error())
+		os.Exit(1)
+	}
+	added := s.AddPapers(papers)
+	if err := s.Save(); err != nil {
+		output.Error("store_error", err.Error())
+		os.Exit(1)
+	}
+	output.Success(map[string]any{
+		"papers":       papers,
+		"total":        len(papers),
+		"source":       source,
+		"workspace":    workspace,
+		"papers_added": added,
+		"total_stored": s.Count(),
+	})
+}
+
 func init() {
 	searchEnCmd := &cobra.Command{
 		Use:   "search-en",
@@ -103,6 +142,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			query, _ := cmd.Flags().GetString("query")
 			limit, _ := cmd.Flags().GetInt("limit")
+			workspace, _ := cmd.Flags().GetString("workspace")
 
 			if query == "" {
 				output.Error("missing_param", "--query is required")
@@ -117,15 +157,12 @@ func init() {
 				output.Error("search_error", err.Error())
 				os.Exit(1)
 			}
-			output.Success(map[string]any{
-				"papers": papers,
-				"total":  len(papers),
-				"source": "google_scholar",
-			})
+			emitSearch(papers, "google_scholar", workspace)
 		},
 	}
 	searchGoogleCmd.Flags().String("query", "", "Search query (required)")
 	searchGoogleCmd.Flags().Int("limit", 10, "Max results")
+	searchGoogleCmd.Flags().String("workspace", "", "Workspace directory to save results (auto-dedup)")
 
 	searchCnkiCmd := &cobra.Command{
 		Use:   "search-cnki",
@@ -133,6 +170,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			query, _ := cmd.Flags().GetString("query")
 			limit, _ := cmd.Flags().GetInt("limit")
+			workspace, _ := cmd.Flags().GetString("workspace")
 
 			if query == "" {
 				output.Error("missing_param", "--query is required")
@@ -147,14 +185,11 @@ func init() {
 				output.Error("search_error", err.Error())
 				os.Exit(1)
 			}
-			output.Success(map[string]any{
-				"papers": papers,
-				"total":  len(papers),
-				"source": "cnki",
-			})
+			emitSearch(papers, "cnki", workspace)
 		},
 	}
 	searchCnkiCmd.Flags().String("query", "", "Search query in Chinese (required)")
+	searchCnkiCmd.Flags().String("workspace", "", "Workspace directory to save results (auto-dedup)")
 	searchCnkiCmd.Flags().Int("limit", 20, "Max results")
 
 	detailCmd := &cobra.Command{
@@ -221,6 +256,7 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			query, _ := cmd.Flags().GetString("query")
 			limit, _ := cmd.Flags().GetInt("limit")
+			workspace, _ := cmd.Flags().GetString("workspace")
 
 			if query == "" {
 				output.Error("missing_param", "--query is required")
@@ -235,14 +271,11 @@ func init() {
 				output.Error("search_error", err.Error())
 				os.Exit(1)
 			}
-			output.Success(map[string]any{
-				"papers": papers,
-				"total":  len(papers),
-				"source": "wos",
-			})
+			emitSearch(papers, "wos", workspace)
 		},
 	}
 	searchWosCmd.Flags().String("query", "", "Search query (required)")
+	searchWosCmd.Flags().String("workspace", "", "Workspace directory to save results (auto-dedup)")
 	searchWosCmd.Flags().Int("limit", 10, "Max results")
 
 	loginStatusCmd := &cobra.Command{

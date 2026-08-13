@@ -41,8 +41,15 @@ func (g *GoogleScholar) Search(ctx context.Context, query string, limit int) ([]
 	time.Sleep(4 * time.Second)
 
 	js := `(function(){
-		// Check for CAPTCHA
-		if (window.location.href.indexOf("/sorry/") > -1 || window.location.href.indexOf("google.com/sorry") > -1) {
+		// Check for CAPTCHA. Google does not always redirect to /sorry/ — it
+		// also serves the block page in place, keeping the scholar URL. Only
+		// the title gives that variant away, and without this check it reaches
+		// the user as "No results found", which reads as "nothing matched your
+		// query" rather than "Google blocked you; go solve a CAPTCHA".
+		if (window.location.href.indexOf("/sorry/") > -1 ||
+		    window.location.href.indexOf("google.com/sorry") > -1 ||
+		    /^Sorry/i.test(document.title) ||
+		    document.querySelector("form#captcha-form, #recaptcha")) {
 			return JSON.stringify({"error": "captcha", "message": "Google Scholar CAPTCHA detected. Please solve it in the browser and retry."});
 		}
 
