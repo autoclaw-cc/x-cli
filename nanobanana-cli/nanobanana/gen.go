@@ -108,7 +108,7 @@ func Gen(c *browser.Client, opts Options) (*Result, error) {
 		return nil, fmt.Errorf("parse downloaded PNG: %w", err)
 	}
 
-	stem := time.Now().Format("20060102-150405")
+	stem := time.Now().Format("20060102-150405-000")
 	fullPath := filepath.Join(opts.OutDir, stem+"-full.png")
 	thumbPath := filepath.Join(opts.OutDir, stem+"-thumb.png")
 
