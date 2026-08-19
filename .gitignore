@@ -9,7 +9,6 @@
 .claude/skills/
 
 # Universal build artifacts (per-CLI .gitignore handles each binary by name)
-/xiaohongshu-cli
 /dist/
 *.test
 *.out
