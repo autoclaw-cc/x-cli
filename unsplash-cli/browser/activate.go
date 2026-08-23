@@ -7,21 +7,30 @@ import (
 
 // ActivateMode decides what Navigate does about the fact that the tab this CLI
 // drives is one nobody is looking at. See Client.Activate for why that matters.
+//
+// The names describe *what gets activated*, because that is the distinction
+// that matters to whoever is at the keyboard: making a tab render is invisible
+// to them, raising Chrome takes over their screen.
 type ActivateMode string
 
 const (
-	// ActivateAuto emulates an active, focused tab without disturbing whatever
-	// the user is actually looking at. The default, and almost always right.
-	ActivateAuto ActivateMode = "auto"
-	// ActivateFront really does raise the tab, stealing the user's screen. For
-	// pages that auto emulation cannot convince — ones that check
-	// document.hasFocus(), or need real compositing.
-	ActivateFront ActivateMode = "front"
+	// ActivateTab makes the page render — layout, lazy loading, infinite
+	// scroll — while leaving the user's foreground application alone. Measured:
+	// the frontmost app does not change. The tab is still not the *selected*
+	// tab in its window (Chrome offers no way to select it without raising the
+	// window), but the page behaves as though it were, which is the part any
+	// extractor depends on.
+	ActivateTab ActivateMode = "tab"
+	// ActivateWindow raises the whole Chrome window with Page.bringToFront.
+	// That really does select the tab — and takes the screen away from
+	// whatever the user was doing. Measured: the frontmost application becomes
+	// Google Chrome. Only for pages ActivateTab cannot convince.
+	ActivateWindow ActivateMode = "window"
 	// ActivateOff skips activation entirely, saving a round trip per navigate.
 	// Fine when only the server-rendered first screen is read.
 	//
 	// It means "this command does not activate", not "force the tab back to
-	// the background": the CDP overrides stick to the tab, so one an earlier
+	// the background": the overrides stick to the tab, so one an earlier
 	// command already woke up stays awake until it is closed. Close the
 	// session first if you need a guaranteed cold tab.
 	ActivateOff ActivateMode = "off"
@@ -29,33 +38,32 @@ const (
 
 // DefaultActivateMode is what this CLI uses when nothing overrides it.
 //
-// DefaultActivateMode is what this CLI uses when nothing overrides it.
-//
-// Activating is the default across this repo, and ActivateFront is what
-// "activated" means: the tab is really raised, so it really renders. Emulation
-// (ActivateAuto) is a stand-in that works today but is one Chrome change away
-// from quietly not working, and a CLI the user just typed is allowed to take
-// the screen for the seconds it runs.
-//
-// A CLI that never needs a rendered page — one that only reads the
-// server-rendered first screen and never clicks, scrolls, or waits on lazy
-// content — can set this to ActivateOff and stay out of the user's way. Say why
-// in a comment when you do; the failure mode of getting it wrong is invisible.
-const DefaultActivateMode = ActivateFront
+// Activating is the default across this repo, and ActivateTab is what
+// "activated" means here: the page renders, the user keeps their screen. A CLI
+// that never needs a rendered page — one that only reads the server-rendered
+// first screen and never clicks, scrolls, or waits on lazy content — can set
+// this to ActivateOff. Say why in a comment; getting it wrong fails invisibly.
+const DefaultActivateMode = ActivateTab
 
 // ActivateEnv overrides the default mode process-wide, so a CLI that exposes no
 // flag for it can still be steered.
 const ActivateEnv = "WEBBRIDGE_ACTIVATE"
 
+// ActivateModeHelp is the shared --activate flag description.
+const ActivateModeHelp = "how to make the Chrome tab render: " +
+	"tab (render it, leave your screen alone) | " +
+	"window (raise the Chrome window — takes over your screen) | " +
+	"off (leave it backgrounded)"
+
 // ParseActivateMode validates a mode name. The empty string means the default.
 func ParseActivateMode(s string) (ActivateMode, error) {
 	switch ActivateMode(s) {
-	case ActivateAuto, ActivateFront, ActivateOff:
+	case ActivateTab, ActivateWindow, ActivateOff:
 		return ActivateMode(s), nil
 	case "":
-		return ActivateAuto, nil
+		return DefaultActivateMode, nil
 	}
-	return "", fmt.Errorf("unknown activate mode %q (want auto, front or off)", s)
+	return "", fmt.Errorf("unknown activate mode %q (want tab, window or off)", s)
 }
 
 // defaultActivateMode reads ActivateEnv. A typo there shouldn't be fatal, and
@@ -99,7 +107,7 @@ func (c *Client) Activate() {
 	switch c.activate {
 	case ActivateOff:
 		return
-	case ActivateFront:
+	case ActivateWindow:
 		_ = c.CDP("Page.bringToFront", nil)
 	default:
 		_ = c.CDP("Page.setWebLifecycleState", map[string]any{"state": "active"})
