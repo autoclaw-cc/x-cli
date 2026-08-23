@@ -24,7 +24,7 @@ func init() {
 			}
 			pageURL := args[0]
 
-			client := browser.NewClient("google-cli")
+			client := withActivateMode(browser.NewClient("google-cli"))
 
 			// Fail fast if the daemon / extension isn't ready.
 			st, err := client.Status()

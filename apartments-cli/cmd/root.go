@@ -37,7 +37,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("apartments")
+			client := withActivateMode(browser.NewClient("apartments"))
 			result, err := property.Search(client, property.SearchParams{
 				Location: location,
 				MinBeds:  minBeds,
@@ -72,7 +72,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("apartments")
+			client := withActivateMode(browser.NewClient("apartments"))
 			result, err := property.GetDetail(client, urlFlag)
 			if err != nil {
 				output.Error("detail_error", err.Error())

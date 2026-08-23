@@ -20,7 +20,7 @@
 
 为什么非得绕浏览器一圈？因为 58 同城没有开放 API，安居客没有，携程也没有。这些站的数据不在任何一份接口文档里，它只存在于你已经打开、已经登录好的那个标签页里。webbridge 做的事，就是把那个标签页交到 agent 手上——不用申请 key，不用管 token 什么时候过期。
 
-这个仓库是成品展示区。里面 14 个 CLI，都是这么来的。
+这个仓库是成品展示区。里面 15 个 CLI，都是这么来的。
 
 ## 那句话之后，agent 干了什么
 
@@ -44,7 +44,7 @@
 
 https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
-## 同一句话，重复了 13 遍
+## 同一句话，重复了 14 遍
 
 | 场景 | 用到的 CLI | 完整脚本 |
 |------|-----------|---------|
@@ -55,6 +55,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 | 主题调研 | [google-cli](./google-cli/)、[baidu-cli](./baidu-cli/) | [research-local-ai-models](./recipes/research-local-ai-models.md) |
 | 文献检索 | [scholar-cli](./scholar-cli/) + [paper-research](./skills/paper-research/) skill | [review-rag-literature](./recipes/review-rag-literature.md) |
 | 找工作 | [boss-cli](./boss-cli/) | 暂无 |
+| 免费配图 | [unsplash-cli](./unsplash-cli/) | 暂无 |
 
 另有 `twitter-cli` 和 `xiaohongshu-cli` 通过 Homebrew 分发，不在本仓库目录里：
 
@@ -131,7 +132,7 @@ npx skills add better-world-ai/agent-cli-creator
 
 > 帮我给 \_\_\_\_\_\_ 做个 CLI，我要能 \_\_\_\_\_\_。
 
-仓库里这 14 个，当初都是这么开始的。
+仓库里这 15 个，当初都是这么开始的。
 
 ## Contributors ✨
 

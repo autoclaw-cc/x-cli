@@ -17,6 +17,7 @@ type Client struct {
 	groupTitle string
 	grouped    bool
 	http       *http.Client
+	activate   ActivateMode
 }
 
 func NewClient(session string) *Client {
@@ -25,6 +26,7 @@ func NewClient(session string) *Client {
 		session:    session,
 		groupTitle: "scholar-cli 文献检索",
 		http:       &http.Client{Timeout: 90 * time.Second},
+		activate:   defaultActivateMode(),
 	}
 }
 
@@ -82,7 +84,11 @@ func (c *Client) Call(action string, args map[string]any) (json.RawMessage, erro
 
 func (c *Client) Navigate(url string) error {
 	_, err := c.Call("navigate", map[string]any{"url": url})
-	return err
+	if err != nil {
+		return err
+	}
+	c.Activate()
+	return nil
 }
 
 // NavigateNewTab points this session's tab at url, creating it on the first
@@ -103,7 +109,11 @@ func (c *Client) NavigateNewTab(url string) error {
 		c.grouped = true
 	}
 	_, err := c.Call("navigate", args)
-	return err
+	if err != nil {
+		return err
+	}
+	c.Activate()
+	return nil
 }
 
 func (c *Client) Evaluate(code string) (json.RawMessage, error) {

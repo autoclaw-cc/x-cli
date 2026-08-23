@@ -38,7 +38,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("rightmove")
+			client := withActivateMode(browser.NewClient("rightmove"))
 			result, err := property.Search(client, property.SearchParams{
 				Location: location,
 				MinPrice: minPrice,
@@ -76,7 +76,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("rightmove")
+			client := withActivateMode(browser.NewClient("rightmove"))
 			result, err := property.GetDetail(client, urlFlag)
 			if err != nil {
 				output.Error("detail_error", err.Error())
