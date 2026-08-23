@@ -149,7 +149,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("scholar-cli")
+			client := withActivateMode(browser.NewClient("scholar-cli"))
 			checkDaemon(client)
 			src := search.NewGoogleScholar(client)
 			papers, err := src.Search(cmd.Context(), query, limit)
@@ -177,7 +177,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("scholar-cli")
+			client := withActivateMode(browser.NewClient("scholar-cli"))
 			checkDaemon(client)
 			src := search.NewCNKI(client)
 			papers, err := src.Search(cmd.Context(), query, limit)
@@ -263,7 +263,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("scholar-cli")
+			client := withActivateMode(browser.NewClient("scholar-cli"))
 			checkDaemon(client)
 			src := search.NewWoS(client)
 			papers, err := src.Search(cmd.Context(), query, limit)
@@ -286,7 +286,7 @@ func init() {
 
 			switch platform {
 			case "wos":
-				client := browser.NewClient("scholar-cli")
+				client := withActivateMode(browser.NewClient("scholar-cli"))
 				checkDaemon(client)
 				ok, err := search.CheckWoSLogin(client)
 				if err != nil {

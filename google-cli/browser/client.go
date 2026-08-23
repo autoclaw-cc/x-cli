@@ -12,16 +12,18 @@ import (
 const DefaultDaemonURL = "http://127.0.0.1:10086"
 
 type Client struct {
-	baseURL string
-	session string
-	http    *http.Client
+	baseURL  string
+	session  string
+	http     *http.Client
+	activate ActivateMode
 }
 
 func NewClient(session string) *Client {
 	return &Client{
-		baseURL: DefaultDaemonURL,
-		session: session,
-		http:    &http.Client{Timeout: 90 * time.Second},
+		baseURL:  DefaultDaemonURL,
+		session:  session,
+		http:     &http.Client{Timeout: 90 * time.Second},
+		activate: defaultActivateMode(),
 	}
 }
 
@@ -79,7 +81,11 @@ func (c *Client) Call(action string, args map[string]any) (json.RawMessage, erro
 
 func (c *Client) Navigate(url string) error {
 	_, err := c.Call("navigate", map[string]any{"url": url, "newTab": true})
-	return err
+	if err != nil {
+		return err
+	}
+	c.Activate()
+	return nil
 }
 
 // Evaluate runs `code` as a top-level JS expression in the active tab.

@@ -44,7 +44,7 @@ func init() {
 		Use:   "login-status",
 		Short: "Check if logged in to Boss直聘",
 		Run: func(cmd *cobra.Command, args []string) {
-			client := browser.NewClient("boss")
+			client := withActivateMode(browser.NewClient("boss"))
 			checkDaemon(client)
 			status, err := boss.CheckLogin(client)
 			if err != nil {
@@ -81,7 +81,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("boss")
+			client := withActivateMode(browser.NewClient("boss"))
 			checkDaemon(client)
 			result, err := boss.SearchJobs(client, query, city, salary, experience, degree, scale, stage, jobType, page, limit)
 			if err != nil {
@@ -118,7 +118,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("boss-detail")
+			client := withActivateMode(browser.NewClient("boss-detail"))
 			checkDaemon(client)
 			detail, err := boss.GetJobDetail(client, jobID)
 			if err != nil {

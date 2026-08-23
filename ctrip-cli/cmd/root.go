@@ -36,7 +36,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("ctrip")
+			client := withActivateMode(browser.NewClient("ctrip"))
 			result, err := ctrip.SearchHotels(client, keyword, checkin, checkout, cityID, countryID, limit)
 			if err != nil {
 				output.Error("search_hotels_error", err.Error())
@@ -66,7 +66,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("ctrip-flight")
+			client := withActivateMode(browser.NewClient("ctrip-flight"))
 			result, err := ctrip.SearchFlights(client, from, to, date, limit)
 			if err != nil {
 				output.Error("search_flights_error", err.Error())
@@ -92,7 +92,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("ctrip-sight")
+			client := withActivateMode(browser.NewClient("ctrip-sight"))
 			result, err := ctrip.SearchAttractions(client, dest, limit)
 			if err != nil {
 				output.Error("search_attractions_error", err.Error())
@@ -115,7 +115,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("ctrip-guide")
+			client := withActivateMode(browser.NewClient("ctrip-guide"))
 			result, err := ctrip.GetDestination(client, name)
 			if err != nil {
 				output.Error("destination_error", err.Error())

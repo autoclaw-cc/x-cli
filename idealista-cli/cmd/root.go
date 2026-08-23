@@ -35,7 +35,7 @@ var searchCmd = &cobra.Command{
 			return fmt.Errorf("invalid country")
 		}
 
-		client := browser.NewClient(sessionName)
+		client := withActivateMode(browser.NewClient(sessionName))
 		params := property.SearchParams{
 			Country: searchCountry,
 			City:    searchCity,
@@ -65,7 +65,7 @@ var detailCmd = &cobra.Command{
 			return fmt.Errorf("missing url")
 		}
 
-		client := browser.NewClient(sessionName)
+		client := withActivateMode(browser.NewClient(sessionName))
 		detail, err := property.GetDetail(client, detailURL)
 		if err != nil {
 			output.Error("detail_error", err.Error())

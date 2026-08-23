@@ -47,7 +47,7 @@ func newGenCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			prompt := args[0]
-			client := browser.NewClient(sessionName)
+			client := withActivateMode(browser.NewClient(sessionName))
 
 			// Fail fast if the daemon / extension isn't ready.
 			st, err := client.Status()

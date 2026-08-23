@@ -50,7 +50,7 @@ func newGenerateCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			prompt := args[0]
-			client := browser.NewClient(sessionName)
+			client := withActivateMode(browser.NewClient(sessionName))
 
 			st, err := client.Status()
 			if err != nil {

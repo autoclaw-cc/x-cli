@@ -20,7 +20,7 @@ Two things make this work:
 
 Why route through a browser at all? Because 58.com has no public API. Neither does Anjuke. Neither does Ctrip. That data doesn't live in any API doc — it only exists inside the tab you already have open and already logged into. What webbridge does is hand that tab to your agent. No key to apply for, no token to keep alive.
 
-This repo is the showcase of what came out. All 14 CLIs in it were built this way.
+This repo is the showcase of what came out. All 15 CLIs in it were built this way.
 
 ## What the agent did after that sentence
 
@@ -44,7 +44,7 @@ Here's a full CLI being born, start to finish:
 
 https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 
-## The same sentence, 13 more times
+## The same sentence, 14 more times
 
 | Scenario | CLIs used | Full recipe |
 |----------|-----------|-------------|
@@ -55,6 +55,7 @@ https://github.com/user-attachments/assets/c1d04187-972a-4b8a-b243-df085281fc77
 | Topic research | [google-cli](./google-cli/), [baidu-cli](./baidu-cli/) | [research-local-ai-models](./recipes/research-local-ai-models_EN.md) |
 | Academic literature | [scholar-cli](./scholar-cli/) + [paper-research](./skills/paper-research/) skill | [review-rag-literature](./recipes/review-rag-literature_EN.md) |
 | Job hunting | [boss-cli](./boss-cli/) | — |
+| Free stock photos | [unsplash-cli](./unsplash-cli/) | — |
 
 `twitter-cli` and `xiaohongshu-cli` ship via Homebrew and don't live in this repo:
 

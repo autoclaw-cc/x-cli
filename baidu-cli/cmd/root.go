@@ -43,7 +43,7 @@ Examples:
 			limit, _ := cmd.Flags().GetInt("limit")
 			includeAll, _ := cmd.Flags().GetBool("all")
 
-			client := browser.NewClient(sessionName)
+			client := withActivateMode(browser.NewClient(sessionName))
 
 			// Fail fast if the daemon / extension isn't ready.
 			st, err := client.Status()

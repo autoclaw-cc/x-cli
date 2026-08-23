@@ -36,7 +36,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("booking")
+			client := withActivateMode(browser.NewClient("booking"))
 			result, err := booking.SearchHotels(client, dest, checkin, checkout, adults, rooms, limit)
 			if err != nil {
 				output.Error("search_error", err.Error())

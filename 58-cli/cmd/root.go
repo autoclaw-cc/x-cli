@@ -45,7 +45,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("58")
+			client := withActivateMode(browser.NewClient("58"))
 			result, err := house.Search(client, house.SearchParams{
 				City:     city,
 				Keyword:  keyword,
@@ -85,7 +85,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			client := browser.NewClient("58")
+			client := withActivateMode(browser.NewClient("58"))
 			result, err := house.GetDetail(client, detailURL)
 			if err != nil {
 				output.Error("detail_error", err.Error())
