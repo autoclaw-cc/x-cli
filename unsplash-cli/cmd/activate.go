@@ -10,14 +10,14 @@ import (
 // activateFlag backs the persistent --activate flag.
 //
 // A background Chrome tab lays nothing out, so clicks, infinite scroll and lazy
-// images silently do nothing in it — which is exactly what made Unsplash's
-// pagination look like a server-side cap. The default really raises the tab;
-// use this flag for the quieter modes. See browser.Activate.
+// images silently do nothing in it. The default renders the tab without taking
+// the user's screen; this flag is the escape hatch either way.
+// See browser.Activate.
 var activateFlag string
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&activateFlag, "activate", string(browser.DefaultActivateMode),
-		"how to make the Chrome tab render: auto (emulate an active tab, no focus stolen) | front (really raise the tab) | off (leave it backgrounded)")
+	rootCmd.PersistentFlags().StringVar(&activateFlag, "activate",
+		string(browser.DefaultActivateMode), browser.ActivateModeHelp)
 }
 
 // withActivateMode applies an explicit --activate to a fresh client. Leaving the

@@ -12,7 +12,7 @@ No Unsplash account, API key, or login is required.
 | `download` | `unsplash-cli download <id\|url>... [-o DIR] [-w PX] [-q 1-100] [--format jpg\|png\|webp] [-f]` | `{dir, downloaded, failed, results: [{ref, id, path, bytes, skipped, source}], errors?}` |
 | `close` | `unsplash-cli close` | `{closed, session}` — closes the Chrome tab group this CLI opened |
 
-Every command also takes `--activate front\|auto\|off` (default `front`) — see [Pagination, and the background-tab trap](#pagination-and-the-background-tab-trap). `WEBBRIDGE_ACTIVATE` sets the default for all CLIs in this repo; the flag overrides it.
+Every command also takes `--activate tab\|window\|off` (default `tab`) — see [Pagination, and the background-tab trap](#pagination-and-the-background-tab-trap). `WEBBRIDGE_ACTIVATE` sets the default for all CLIs in this repo; the flag overrides it.
 
 All output:
 
@@ -68,13 +68,18 @@ Two things had to be right for that to work, and both are easy to get wrong:
 
 1. **The tab must render.** A background Chrome tab reports `visibilityState: "hidden"`, skips layout entirely, and never fires the `IntersectionObserver` callbacks behind lazy loading and infinite scroll. On Unsplash the grid then measures 0px tall and the *Load more* button has no box to click — which is indistinguishable, from the outside, from Unsplash refusing to paginate. `browser.Client.Activate` fixes it, and `--activate` picks how:
 
-   | mode | what it does | when |
-   |---|---|---|
-   | `front` *(default)* | `Page.bringToFront` — really raises the tab, so it renders for real | the default across this repo's CLIs |
-   | `auto` | `Page.setWebLifecycleState` + `Emulation.setFocusEmulationEnabled` — the tab renders, your screen stays where it is | when you'd rather not lose focus; works on Unsplash today |
-   | `off` | nothing; saves a round trip per navigate | reading only the first 20 server-rendered results, as fast as possible |
+   | mode | mechanism | frontmost app afterwards | pagination |
+   |---|---|---|---|
+   | `tab` *(default)* | `Page.setWebLifecycleState` + `Emulation.setFocusEmulationEnabled` | **unchanged** — you keep your screen | works |
+   | `window` | `Page.bringToFront` | **becomes Google Chrome** — takes over your screen | works |
+   | `off` | nothing | unchanged | first 20 only |
 
-   Set `WEBBRIDGE_ACTIVATE` to change the default without passing the flag every time. `off` means "this command does not activate" — a tab an earlier command already woke up stays awake, so run `unsplash-cli close` first if you want a cold one.
+   Those columns are measured, not assumed. Under `tab` the page reports `visibilityState: "visible"` and lays out fully (`scrollHeight` 8593 vs 907) while the frontmost application never changes; `window` really does raise Chrome over whatever you were doing, which is why it is opt-in.
+
+   `tab` leaves the tab un-*selected* in its Chrome window — Chrome offers no way to select it without raising the window, and `Target.activateTarget` is refused over `chrome.debugger`. That distinction doesn't matter to any extractor here: what they need is a page that renders, which is what they get.
+
+   Set `WEBBRIDGE_ACTIVATE` to change the default without passing the flag every time.
+
 2. **The click must be retried.** The button ships in the server-rendered HTML but is inert until React hydrates. A single click fired a second too early does nothing, and looks like the end of the results. `advanceJS` retries for a few seconds, then falls back to scrolling — in that order, because infinite scroll only arms itself once the button has been used.
 
 If Unsplash genuinely runs out of photos, the response sets `truncated: true` with a `note` naming the count it stopped at.
