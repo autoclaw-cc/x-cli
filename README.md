@@ -132,7 +132,7 @@ npx skills add better-world-ai/agent-cli-creator
 
 > 帮我给 \_\_\_\_\_\_ 做个 CLI，我要能 \_\_\_\_\_\_。
 
-仓库里这 14 个，当初都是这么开始的。
+仓库里这 15 个，当初都是这么开始的。
 
 ## Contributors ✨
 

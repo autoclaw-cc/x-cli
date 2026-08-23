@@ -132,7 +132,7 @@ Then fill in the blanks and send it to your agent:
 
 > Build me a CLI for \_\_\_\_\_\_. I want to \_\_\_\_\_\_.
 
-All 14 in this repo started exactly there.
+All 15 in this repo started exactly there.
 
 ## Contributors ✨
 
