@@ -6,7 +6,7 @@ Academic paper search CLI — parallel multi-source search, dedup, BibTeX export
 
 | Command | Usage | Returns |
 |---|---|---|
-| `search-en` | `scholar-cli search-en --query "LLM" [--sources arxiv,semantic] [--limit 10] [--workspace DIR]` | `{papers, total, sources}` |
+| `search-en` | `scholar-cli search-en --query "LLM" [--sources arxiv,semantic] [--limit 10] [--workspace DIR]` | `{papers, total, sources}` (+ workspace stats) |
 | `search-google` | `scholar-cli search-google --query "attention" [--limit 10]` | `{papers, total, source}` |
 | `search-cnki` | `scholar-cli search-cnki --query "大语言模型" [--limit 20]` | `{papers, total, source}` |
 | `search-wos` | `scholar-cli search-wos --query "transformer" [--limit 10]` | `{papers, total, source}` |
