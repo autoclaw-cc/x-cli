@@ -83,6 +83,20 @@ func emitSearch(papers []paper.Paper, source string, workspace string) {
 	})
 }
 
+func englishSearchData(result *search.SearchResult, workspace string, added, stored int) map[string]any {
+	data := map[string]any{
+		"papers":  result.Papers,
+		"total":   result.Total,
+		"sources": result.Sources,
+	}
+	if workspace != "" {
+		data["workspace"] = workspace
+		data["papers_added"] = added
+		data["total_stored"] = stored
+	}
+	return data
+}
+
 func init() {
 	searchEnCmd := &cobra.Command{
 		Use:   "search-en",
@@ -109,26 +123,21 @@ func init() {
 				os.Exit(1)
 			}
 
+			added, stored := 0, 0
 			if workspace != "" {
 				s, err := store.Open(workspace)
 				if err != nil {
 					output.Error("store_error", err.Error())
 					os.Exit(1)
 				}
-				added := s.AddPapers(result.Papers)
+				added = s.AddPapers(result.Papers)
 				if err := s.Save(); err != nil {
 					output.Error("store_error", err.Error())
 					os.Exit(1)
 				}
-				output.Success(map[string]any{
-					"search":       result,
-					"workspace":    workspace,
-					"papers_added": added,
-					"total_stored": s.Count(),
-				})
-			} else {
-				output.Success(result)
+				stored = s.Count()
 			}
+			output.Success(englishSearchData(result, workspace, added, stored))
 		},
 	}
 	searchEnCmd.Flags().String("query", "", "Search query (required)")
