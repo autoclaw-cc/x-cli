@@ -7,9 +7,9 @@ Academic paper search CLI — parallel multi-source search, dedup, BibTeX export
 | Command | Usage | Returns |
 |---|---|---|
 | `search-en` | `scholar-cli search-en --query "LLM" [--sources arxiv,semantic] [--limit 10] [--workspace DIR]` | `{papers, total, sources}` |
-| `search-google` | `scholar-cli search-google --query "attention" [--limit 10]` | `{papers, total, source}` |
-| `search-cnki` | `scholar-cli search-cnki --query "大语言模型" [--limit 20]` | `{papers, total, source}` |
-| `search-wos` | `scholar-cli search-wos --query "transformer" [--limit 10]` | `{papers, total, source}` |
+| `search-google` | `scholar-cli search-google --query "attention" [--limit 10] [--workspace DIR]` | `{papers, total, source}` (+ workspace stats) |
+| `search-cnki` | `scholar-cli search-cnki --query "大语言模型" [--limit 20] [--workspace DIR]` | `{papers, total, source}` (+ workspace stats) |
+| `search-wos` | `scholar-cli search-wos --query "transformer" [--limit 10] [--workspace DIR]` | `{papers, total, source}` (+ workspace stats) |
 | `detail` | `scholar-cli detail --doi "10.1145/3442188.3445922"` | `{title, authors, abstract, ...}` |
 | `download` | `scholar-cli download --doi "10.1145/..." [--output-dir .] [--scihub DOMAIN]` | `{doi, file_path, source, size_bytes}` |
 | `export` | `scholar-cli export --workspace DIR [--output refs.bib]` | BibTeX to stdout or file |
@@ -76,6 +76,7 @@ go build -o scholar-cli .
 
 # Workspace + BibTeX export
 ./scholar-cli search-en --query "transformer" --workspace ./my-survey --limit 10
+./scholar-cli search-google --query "transformer" --workspace ./my-survey --limit 10
 ./scholar-cli export --workspace ./my-survey --output refs.bib
 ```
 

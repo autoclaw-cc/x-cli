@@ -30,22 +30,22 @@ scholar-cli search-en --query "关键词" --limit 10
 scholar-cli search-en --query "关键词" --sources openalex,semantic,arxiv,dblp
 
 # Google Scholar（需要 WebBridge + 浏览器）
-scholar-cli search-google --query "关键词" --limit 10
+scholar-cli search-google --query "关键词" --limit 10 [--workspace ~/research/my-survey]
 
 # 知网搜索（需要 WebBridge + 知网登录）
-scholar-cli search-cnki --query "关键词" --limit 20
+scholar-cli search-cnki --query "关键词" --limit 20 [--workspace ~/research/my-survey]
 
 # Web of Science（需要 WebBridge + 机构登录）
-scholar-cli search-wos --query "关键词" --limit 10
+scholar-cli search-wos --query "关键词" --limit 10 [--workspace ~/research/my-survey]
 
 # 按 DOI 查论文详情
 scholar-cli detail --doi "10.1145/3442188.3445922"
 
 # 搜索并保存到工作区（自动去重）
-scholar-cli search-en --query "关键词" --workspace /path/to/workspace
+scholar-cli search-en --query "关键词" --workspace ~/research/my-survey
 
 # 导出 BibTeX
-scholar-cli export --workspace /path/to/workspace --output refs.bib
+scholar-cli export --workspace ~/research/my-survey --output ~/research/my-survey/refs.bib
 
 # 检查 WoS 登录状态
 scholar-cli login-status --platform wos
